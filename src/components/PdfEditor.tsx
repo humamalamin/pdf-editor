@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, Type, Download, Trash2, ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { Upload, Type, Save, Trash2, ChevronLeft, ChevronRight, Image as ImageIcon, PenTool } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { PDFDocument, rgb } from "pdf-lib";
 import { Rnd } from "react-rnd";
@@ -291,78 +291,61 @@ export default function PdfEditor() {
   const currentAnnotations = annotations.filter((a) => a.page === currentPage);
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Toolbar */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center gap-2">
-          <span className="truncate max-w-[200px] text-sm font-medium text-slate-700 dark:text-slate-200">
-            {pdfFile.name}
+    <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 relative overflow-hidden">
+      {/* Floating Glassmorphism Toolbar */}
+      <div className="absolute top-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-2xl bg-white/80 px-6 py-4 shadow-2xl backdrop-blur-xl border border-white/40 dark:bg-slate-900/80 dark:border-slate-700/50">
+        
+        {/* Upload New / Clear */}
+        <button
+          onClick={handleClear}
+          className="group flex w-20 flex-col items-center justify-center gap-2 rounded-xl p-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          title={`Active file: ${pdfFile.name}`}
+        >
+          <Upload className="h-6 w-6" strokeWidth={1.5} />
+          <span className="text-[11px] font-semibold tracking-wide">Upload</span>
+        </button>
+
+        <div className="mx-2 h-10 w-[1px] bg-slate-200 dark:bg-slate-700/50"></div>
+
+        {/* Add Text */}
+        <button
+          onClick={addText}
+          className="group flex w-20 flex-col items-center justify-center gap-2 rounded-xl p-2 text-slate-500 transition-all hover:bg-blue-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+        >
+          <Type className="h-6 w-6" strokeWidth={1.5} />
+          <span className="text-[11px] font-semibold tracking-wide">Add Text</span>
+        </button>
+        
+        {/* Sign (Image) - Highlighted to match mockup */}
+        <label className="group flex w-20 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl bg-blue-500 p-2 text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-600 hover:-translate-y-0.5">
+          <PenTool className="h-6 w-6" strokeWidth={1.5} />
+          <span className="text-[11px] font-semibold tracking-wide">Sign</span>
+          <input
+            type="file"
+            accept="image/png, image/jpeg"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
+        </label>
+
+        <div className="mx-2 h-10 w-[1px] bg-slate-200 dark:bg-slate-700/50"></div>
+
+        {/* Delete Annotations? Let's just keep Download/Save */}
+        <button
+          onClick={downloadPdf}
+          disabled={isExporting}
+          className="group flex w-20 flex-col items-center justify-center gap-2 rounded-xl p-2 text-slate-500 transition-all hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
+        >
+          <Save className="h-6 w-6" strokeWidth={1.5} />
+          <span className="text-[11px] font-semibold tracking-wide">
+            {isExporting ? "Saving..." : "Save"}
           </span>
-          <button
-            onClick={handleClear}
-            className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-            title="Remove PDF"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 rounded-xl bg-blue-50 border-2 border-blue-200 px-2 py-1.5 dark:bg-slate-800 dark:border-slate-600 shadow-sm transition-all hover:border-blue-300">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage <= 1}
-            className="rounded-lg bg-white p-1.5 hover:bg-blue-100 hover:text-blue-700 shadow-sm disabled:opacity-40 dark:bg-slate-700 dark:hover:bg-slate-600"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="min-w-[5rem] text-center text-sm font-bold text-blue-900 dark:text-blue-100">
-            Hal {currentPage} / {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage >= totalPages}
-            className="rounded-lg bg-white p-1.5 hover:bg-blue-100 hover:text-blue-700 shadow-sm disabled:opacity-40 dark:bg-slate-700 dark:hover:bg-slate-600"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={addText}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 hover:dark:bg-slate-700"
-          >
-            <Type className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Text</span>
-          </button>
-          
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 hover:dark:bg-slate-700">
-            <ImageIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign (Image)</span>
-            <input
-              type="file"
-              accept="image/png, image/jpeg"
-              className="hidden"
-              onChange={handleImageUpload}
-            />
-          </label>
-
-          <button
-            onClick={downloadPdf}
-            disabled={isExporting}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {isExporting ? "Exporting..." : "Download"}
-            </span>
-          </button>
-        </div>
+        </button>
       </div>
 
       {/* Editor Area */}
-      <div className="hide-scrollbar flex-1 overflow-auto bg-slate-100 p-4 dark:bg-slate-950">
-        <div className="flex min-h-full items-center justify-center">
+      <div className="hide-scrollbar flex-1 overflow-auto pt-36 pb-20 px-4">
+        <div className="flex min-h-full items-start justify-center">
           <div
             ref={containerRef}
             className="relative shadow-xl transition-all duration-200"
@@ -468,6 +451,28 @@ export default function PdfEditor() {
           </div>
         </div>
       </div>
+
+      {/* Floating Pagination Bottom Right */}
+      <div className="absolute bottom-6 right-6 z-50 flex items-center gap-1 rounded-xl bg-white/90 p-1.5 shadow-lg backdrop-blur-md border border-slate-200/60 dark:bg-slate-800/90 dark:border-slate-700/60 transition-all">
+        <button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage <= 1}
+          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <span className="min-w-[5.5rem] px-2 text-center text-sm font-medium text-slate-700 dark:text-slate-200">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          disabled={currentPage >= totalPages}
+          className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+
     </div>
   );
 }
