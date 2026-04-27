@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
-import { PenTool, Combine, Scissors, Layout } from "lucide-react";
+import { PenTool, Combine, Scissors, Layout, Minimize2 } from "lucide-react";
 
 const PdfEditor = dynamic(() => import("@/components/PdfEditor"), { ssr: false });
 const PdfMerge = dynamic(() => import("@/components/PdfMerge"), { ssr: false });
 const PdfSplit = dynamic(() => import("@/components/PdfSplit"), { ssr: false });
 const PdfOrganizer = dynamic(() => import("@/components/PdfOrganizer"), { ssr: false });
+const PdfCompress = dynamic(() => import("@/components/PdfCompress"), { ssr: false });
 
-type Tool = "edit" | "merge" | "split" | "organize";
+type Tool = "edit" | "merge" | "split" | "organize" | "compress";
 
 export default function Home() {
   const [activeTool, setActiveTool] = useState<Tool>("edit");
@@ -51,6 +52,17 @@ export default function Home() {
             Organize
           </button>
           <button
+            onClick={() => setActiveTool("compress")}
+            className={`flex items-center gap-2 rounded-lg px-4 py-1.5 text-sm font-semibold transition-all ${
+              activeTool === "compress"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-white"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            <Minimize2 className="h-4 w-4" />
+            Compress
+          </button>
+          <button
             onClick={() => setActiveTool("merge")}
             className={`flex items-center gap-2 rounded-lg px-4 py-1.5 text-sm font-semibold transition-all ${
               activeTool === "merge"
@@ -83,6 +95,7 @@ export default function Home() {
       <div className="flex-1 overflow-hidden">
         {activeTool === "edit" && <PdfEditor />}
         {activeTool === "organize" && <PdfOrganizer />}
+        {activeTool === "compress" && <PdfCompress />}
         {activeTool === "merge" && <PdfMerge />}
         {activeTool === "split" && <PdfSplit />}
       </div>
