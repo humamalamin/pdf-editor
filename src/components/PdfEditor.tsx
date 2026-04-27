@@ -84,6 +84,7 @@ export default function PdfEditor() {
     const renderContext: any = {
       canvasContext: context,
       viewport: viewport,
+      canvas: canvas,
     };
 
     renderTaskRef.current = page.render(renderContext);
