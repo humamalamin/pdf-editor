@@ -1,0 +1,5 @@
+name = "pdf-editor"
+compatibility_date = "2026-06-27"
+
+[assets]
+directory = "./out"

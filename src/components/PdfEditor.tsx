@@ -1,15 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, Type, Save, Trash2, ChevronLeft, ChevronRight, Image as ImageIcon, PenTool } from "lucide-react";
-import * as pdfjsLib from "pdfjs-dist";
-import { PDFDocument, rgb } from "pdf-lib";
+import { Upload, Type, Save, Trash2, ChevronLeft, ChevronRight, PenTool } from "lucide-react";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { Rnd } from "react-rnd";
-
-// Setup PDF.js worker
-if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-}
+import { pdfjsLib } from "@/lib/pdfjs";
 
 type Annotation = {
   id: string;
@@ -31,6 +26,10 @@ export default function PdfEditor() {
   const [scale, setScale] = useState(1.0);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isExporting, setIsExporting] = useState(false);
+  const [isPlacingText, setIsPlacingText] = useState(false);
+  const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
+  const editorScrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +53,7 @@ export default function PdfEditor() {
     loadPdf().catch(console.error);
   }, [pdfFile]);
 
-  const renderTaskRef = useRef<any>(null);
+  const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
   // Render Page
   const renderPage = useCallback(async () => {
@@ -63,7 +62,7 @@ export default function PdfEditor() {
     if (renderTaskRef.current) {
       try {
         renderTaskRef.current.cancel();
-      } catch (e) {
+      } catch {
         // ignore cancellation errors
       }
     }
@@ -80,8 +79,9 @@ export default function PdfEditor() {
 
     canvas.height = viewport.height;
     canvas.width = viewport.width;
+    setPageSize({ width: viewport.width, height: viewport.height });
 
-    const renderContext: any = {
+    const renderContext: Parameters<typeof page.render>[0] = {
       canvasContext: context,
       viewport: viewport,
       canvas: canvas,
@@ -91,8 +91,8 @@ export default function PdfEditor() {
 
     try {
       await renderTaskRef.current.promise;
-    } catch (e: any) {
-      if (e?.name !== "RenderingCancelledException") {
+    } catch (e) {
+      if (!(e instanceof Error) || e.name !== "RenderingCancelledException") {
         console.log("Render error", e);
       }
     }
@@ -101,6 +101,17 @@ export default function PdfEditor() {
   useEffect(() => {
     renderPage();
   }, [renderPage]);
+
+  useEffect(() => {
+    const scrollContainer = editorScrollRef.current;
+    if (!scrollContainer || pageSize.width === 0) return;
+
+    requestAnimationFrame(() => {
+      scrollContainer.scrollLeft =
+        (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2;
+      scrollContainer.scrollTop = 0;
+    });
+  }, [currentPage, pageSize.width]);
 
   // Handlers
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,19 +126,33 @@ export default function PdfEditor() {
     setPdfFile(null);
     setPdfDoc(null);
     setAnnotations([]);
+    setIsPlacingText(false);
+    setActiveAnnotationId(null);
+    setPageSize({ width: 0, height: 0 });
   };
 
   const addText = () => {
+    setIsPlacingText((placing) => !placing);
+  };
+
+  const placeTextAtCursor = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPlacingText || !containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const id = crypto.randomUUID();
     const newText: Annotation = {
-      id: Math.random().toString(36).substr(2, 9),
+      id,
       type: "text",
       page: currentPage,
-      x: 50,
-      y: 50,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
       content: "",
       fontSize: 16,
     };
-    setAnnotations([...annotations, newText]);
+
+    setAnnotations((prev) => [...prev, newText]);
+    setActiveAnnotationId(id);
+    setIsPlacingText(false);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,19 +203,12 @@ export default function PdfEditor() {
       const existingPdfBytes = await pdfFile.arrayBuffer();
       const pdfDocLib = await PDFDocument.load(existingPdfBytes);
 
-      // PDF-lib registers standard fonts
-      const helveticaFont = await pdfDocLib.embedFont(pdfDocLib.getForm() ? 
-        (await import("pdf-lib")).StandardFonts.Helvetica : 
-        (await import("pdf-lib")).StandardFonts.Helvetica
-      ); 
-      // Import dynamic fix
-      const { StandardFonts } = await import("pdf-lib");
       const font = await pdfDocLib.embedFont(StandardFonts.Helvetica);
 
+      const pages = pdfDocLib.getPages();
       for (const ann of annotations) {
-        const pages = pdfDocLib.getPages();
         const pdfPage = pages[ann.page - 1];
-        const { width, height } = pdfPage.getSize();
+        const { height } = pdfPage.getSize();
 
         // Canvas element is scaled, so we must calculate relative positions
         const canvas = canvasRef.current;
@@ -311,7 +329,12 @@ export default function PdfEditor() {
         {/* Add Text */}
         <button
           onClick={addText}
-          className="group flex w-20 flex-col items-center justify-center gap-2 rounded-xl p-2 text-slate-500 transition-all hover:bg-blue-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+          className={`group flex w-20 flex-col items-center justify-center gap-2 rounded-xl p-2 transition-all ${
+            isPlacingText
+              ? "bg-blue-50 text-blue-600 ring-2 ring-blue-500/30 dark:bg-blue-900/30 dark:text-blue-300"
+              : "text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+          }`}
+          title={isPlacingText ? "Click the PDF to place text" : "Add Text"}
         >
           <Type className="h-6 w-6" strokeWidth={1.5} />
           <span className="text-[11px] font-semibold tracking-wide">Add Text</span>
@@ -345,14 +368,20 @@ export default function PdfEditor() {
       </div>
 
       {/* Editor Area */}
-      <div className="hide-scrollbar flex-1 overflow-auto pt-36 pb-20 px-4">
-        <div className="flex min-h-full items-start justify-center">
+      <div
+        ref={editorScrollRef}
+        className="hide-scrollbar flex-1 overflow-auto pt-36 pb-20 px-4"
+      >
+        <div className="flex min-h-full min-w-max items-start justify-center">
           <div
             ref={containerRef}
-            className="relative shadow-xl transition-all duration-200"
+            onClick={placeTextAtCursor}
+            className={`relative shadow-xl transition-all duration-200 ${
+              isPlacingText ? "cursor-crosshair ring-2 ring-blue-500/40" : ""
+            }`}
             style={{ 
-              width: canvasRef.current?.width ?? 0, 
-              height: canvasRef.current?.height ?? 0,
+              width: pageSize.width,
+              height: pageSize.height,
               backgroundColor: 'white'
             }}
           >
@@ -382,7 +411,10 @@ export default function PdfEditor() {
                 bounds="parent"
                 className="group absolute"
               >
-                <div className="relative h-full w-full border border-transparent hover:border-blue-400 border-dashed group">
+                <div
+                  className="relative h-full w-full border border-transparent hover:border-blue-400 border-dashed group"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {/* Controls */}
                   <div className="absolute -right-3 -top-6 hidden group-hover:flex items-center gap-2 z-10">
                     {ann.type === "text" && (
@@ -433,10 +465,11 @@ export default function PdfEditor() {
                       }}
                       placeholder="Ketik teks di sini (Enter untuk baris baru)"
                       onFocus={(e) => {
+                         setActiveAnnotationId(ann.id);
                          e.target.style.height = 'auto';
                          e.target.style.height = e.target.scrollHeight + 'px';
                       }}
-                      autoFocus
+                      autoFocus={ann.id === activeAnnotationId}
                     />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element

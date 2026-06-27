@@ -1,14 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Upload, Scissors, FileText, Download, CheckCircle2 } from "lucide-react";
-import * as pdfjsLib from "pdfjs-dist";
+import React, { useEffect, useState } from "react";
+import { Scissors, FileText, Download, CheckCircle2 } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
-
-// Setup PDF.js worker
-if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-}
+import { pdfjsLib } from "@/lib/pdfjs";
 
 export default function PdfSplit() {
   const [file, setFile] = useState<File | null>(null);
@@ -17,12 +12,21 @@ export default function PdfSplit() {
   const [isSplitting, setIsSplitting] = useState(false);
   const [thumbnails, setThumbnails] = useState<string[]>([]);
 
+  useEffect(() => {
+    return () => {
+      thumbnails.forEach((thumbnail) => URL.revokeObjectURL(thumbnail));
+    };
+  }, [thumbnails]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
       setSelectedPages([]);
-      setThumbnails([]);
+      setThumbnails((prev) => {
+        prev.forEach((thumbnail) => URL.revokeObjectURL(thumbnail));
+        return [];
+      });
       
       const arrayBuffer = await selectedFile.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -44,7 +48,14 @@ export default function PdfSplit() {
             viewport: viewport,
             canvas: canvas 
           }).promise;
-          thumbs.push(canvas.toDataURL());
+          const thumbnailUrl = await new Promise<string | null>((resolve) => {
+            canvas.toBlob((blob) => {
+              resolve(blob ? URL.createObjectURL(blob) : null);
+            }, "image/webp", 0.72);
+          });
+          if (thumbnailUrl) {
+            thumbs.push(thumbnailUrl);
+          }
         }
       }
       setThumbnails(thumbs);
@@ -87,7 +98,7 @@ export default function PdfSplit() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (err) {
       console.error("Split error:", err);
       alert("Failed to split PDF. Please try again.");
@@ -115,7 +126,15 @@ export default function PdfSplit() {
           </div>
           {file && (
             <button 
-              onClick={() => {setFile(null); setTotalPages(0); setSelectedPages([]);}}
+              onClick={() => {
+                setFile(null);
+                setTotalPages(0);
+                setSelectedPages([]);
+                setThumbnails((prev) => {
+                  prev.forEach((thumbnail) => URL.revokeObjectURL(thumbnail));
+                  return [];
+                });
+              }}
               className="text-sm font-medium text-red-500 hover:text-red-600"
             >
               Cancel / Start Over
@@ -177,6 +196,7 @@ export default function PdfSplit() {
                   }`}
                 >
                   {thumbnails[pageNum - 1] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={thumbnails[pageNum - 1]} alt={`Page ${pageNum}`} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-slate-50 dark:bg-slate-800">

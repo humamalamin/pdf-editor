@@ -1,14 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Upload, Layout, FileText, Download, RotateCw, Trash2, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
-import * as pdfjsLib from "pdfjs-dist";
+import React, { useEffect, useRef, useState } from "react";
+import { Layout, FileText, Download, RotateCw, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 import { PDFDocument, degrees } from "pdf-lib";
-
-// Setup PDF.js worker
-if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-}
+import { pdfjsLib } from "@/lib/pdfjs";
 
 type PageState = {
   id: string;
@@ -22,12 +17,26 @@ export default function PdfOrganizer() {
   const [pages, setPages] = useState<PageState[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const pagesRef = useRef<PageState[]>([]);
+
+  useEffect(() => {
+    pagesRef.current = pages;
+  }, [pages]);
+
+  useEffect(() => {
+    return () => {
+      pagesRef.current.forEach((page) => URL.revokeObjectURL(page.thumbnail));
+    };
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
-      setPages([]);
+      setPages((prev) => {
+        prev.forEach((page) => URL.revokeObjectURL(page.thumbnail));
+        return [];
+      });
       setIsProcessing(true);
       
       try {
@@ -50,12 +59,21 @@ export default function PdfOrganizer() {
               viewport,
               canvas: canvas 
             }).promise;
+            const thumbnailUrl = await new Promise<string | null>((resolve) => {
+              canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : null);
+              }, "image/webp", 0.72);
+            });
+
+            if (!thumbnailUrl) {
+              continue;
+            }
             
             loadedPages.push({
               id: Math.random().toString(36).substr(2, 9),
               originalIndex: i - 1,
               rotation: 0,
-              thumbnail: canvas.toDataURL(),
+              thumbnail: thumbnailUrl,
             });
           }
           setLoadingProgress(Math.round((i / totalPages) * 100));
@@ -82,7 +100,13 @@ export default function PdfOrganizer() {
       alert("PDF must have at least one page.");
       return;
     }
-    setPages(prev => prev.filter(p => p.id !== id));
+    setPages(prev => {
+      const removedPage = prev.find((page) => page.id === id);
+      if (removedPage) {
+        URL.revokeObjectURL(removedPage.thumbnail);
+      }
+      return prev.filter(p => p.id !== id);
+    });
   };
 
   const movePage = (index: number, direction: "left" | "right") => {
@@ -128,7 +152,7 @@ export default function PdfOrganizer() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (err) {
       console.error("Save error:", err);
       alert("Failed to save PDF.");
@@ -147,7 +171,13 @@ export default function PdfOrganizer() {
           </div>
           {file && !isProcessing && (
              <button 
-                onClick={() => {setFile(null); setPages([]);}}
+                onClick={() => {
+                  setFile(null);
+                  setPages((prev) => {
+                    prev.forEach((page) => URL.revokeObjectURL(page.thumbnail));
+                    return [];
+                  });
+                }}
                 className="text-sm font-medium text-red-500 hover:text-red-600"
               >
                 Start Over
@@ -206,6 +236,7 @@ export default function PdfOrganizer() {
                   className="group relative flex flex-col gap-2"
                 >
                   <div className="relative aspect-[3/4] rounded-xl border-2 border-transparent bg-white dark:bg-slate-900 shadow-md transition-all hover:shadow-xl overflow-hidden group-hover:ring-4 group-hover:ring-purple-500/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={page.thumbnail} 
                       alt={`Page ${index + 1}`} 

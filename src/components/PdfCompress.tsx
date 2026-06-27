@@ -1,14 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Upload, Minimize2, FileText, Download, Zap, ShieldCheck, Info } from "lucide-react";
+import { Minimize2, FileText, Download, Zap, ShieldCheck, Info } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
-import * as pdfjsLib from "pdfjs-dist";
-
-// Setup PDF.js worker
-if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-}
+import { pdfjsLib } from "@/lib/pdfjs";
 
 type CompressionLevel = "low" | "medium" | "high";
 
