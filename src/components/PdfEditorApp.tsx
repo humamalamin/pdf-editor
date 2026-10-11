@@ -25,7 +25,7 @@ const icons = {
 
 export default function PdfEditorApp({ tool }: Readonly<{ tool: ToolId }>) {
   return (
-    <main className="flex h-dvh w-full flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <main className="flex h-dvh w-full shrink-0 flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
       <nav className="z-[100] flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-3 sm:px-8 dark:border-slate-800 dark:bg-slate-900">
         <Link href="/" className="flex shrink-0 items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-md shadow-blue-600/20">
