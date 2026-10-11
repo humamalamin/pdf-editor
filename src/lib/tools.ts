@@ -1,4 +1,11 @@
-export type ToolId = "edit" | "organize" | "compress" | "merge" | "split";
+export type ToolId =
+  | "edit"
+  | "organize"
+  | "compress"
+  | "merge"
+  | "split"
+  | "watermark"
+  | "protect";
 
 export type ToolFaq = { question: string; answer: string };
 
@@ -130,6 +137,64 @@ export const tools: Record<ToolId, ToolConfig> = {
       {
         question: "Can I extract only certain pages?",
         answer: "Yes. Select the page ranges you need and export just those pages.",
+      },
+    ],
+  },
+  watermark: {
+    id: "watermark",
+    label: "Watermark",
+    path: "/watermark-pdf",
+    title: "Add Watermark to PDF or Image Online",
+    heading: "Add a Text Watermark to PDF Files",
+    description:
+      "Stamp text like COPY or \"For registration purposes only\" on a PDF or photo of your ID. Private and free, with no upload to any server.",
+    steps: [
+      "Open a PDF, JPG, or PNG from your device.",
+      "Type your watermark text and adjust size, opacity, and rotation while watching the preview.",
+      "Download the watermarked PDF.",
+    ],
+    faq: [
+      privacyFaq,
+      {
+        question: "Why add a watermark to a copy of my ID card?",
+        answer:
+          "A watermark stating the purpose, such as \"For bank account opening only\", makes it much harder for someone to reuse your ID copy for something else.",
+      },
+      {
+        question: "Can a watermark be removed?",
+        answer:
+          "A regular watermark is PDF text that someone with a PDF editor can delete. Turn on the permanent option to convert pages to images so the watermark is part of the picture.",
+      },
+    ],
+  },
+  protect: {
+    id: "protect",
+    label: "Protect",
+    path: "/protect-pdf",
+    title: "Lock or Unlock PDF with a Password Online",
+    heading: "Add or Remove a PDF Password",
+    description:
+      "Protect a PDF with a password using AES-256 encryption, or remove the password from a PDF you own. Everything runs in your browser, so your file and password never leave your device.",
+    steps: [
+      "Open a PDF from your device.",
+      "Choose Lock to set a password, or Unlock and enter the current password.",
+      "Download the protected or unlocked PDF.",
+    ],
+    faq: [
+      privacyFaq,
+      {
+        question: "Can you recover a forgotten PDF password?",
+        answer:
+          "No. The password is never stored or sent anywhere, so a lost password cannot be recovered. Keep it somewhere safe.",
+      },
+      {
+        question: "Can I unlock a PDF without knowing the password?",
+        answer:
+          "No. You need the correct password. This tool only removes a password you can already provide.",
+      },
+      {
+        question: "What encryption is used?",
+        answer: "Locked files use AES-256, the strongest encryption in the PDF standard.",
       },
     ],
   },

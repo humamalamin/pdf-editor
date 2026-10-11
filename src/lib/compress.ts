@@ -14,7 +14,7 @@ type Options = {
   onProgress?: (message: string) => void;
 };
 
-type RenderedPage = {
+export type RenderedPage = {
   canvas: HTMLCanvasElement;
   /** Original page size in PDF points. */
   width: number;
@@ -50,7 +50,7 @@ async function saveBasic(buffer: ArrayBuffer) {
   return pdfDoc.save({ useObjectStreams: true, addDefaultPage: false });
 }
 
-async function renderPages(
+export async function renderPages(
   buffer: ArrayBuffer,
   scale: number,
   signal?: AbortSignal,
@@ -85,7 +85,7 @@ async function renderPages(
   return pages;
 }
 
-function releasePages(pages: RenderedPage[]) {
+export function releasePages(pages: RenderedPage[]) {
   for (const { canvas } of pages) {
     canvas.width = 0;
     canvas.height = 0;
@@ -105,7 +105,7 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number) {
   });
 }
 
-async function buildPdf(
+export async function buildPdf(
   pages: RenderedPage[],
   quality: number,
   signal?: AbortSignal,

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { PenTool, Combine, Scissors, Layout, Minimize2 } from "lucide-react";
+import { PenTool, Combine, Scissors, Layout, Minimize2, Stamp, Lock } from "lucide-react";
 import { toolList, type ToolId } from "@/lib/tools";
 
 const PdfEditor = dynamic(() => import("@/components/PdfEditor"), { ssr: false });
@@ -15,12 +15,22 @@ const PdfCompress = dynamic(() => import("@/components/PdfCompress"), {
   ssr: false,
 });
 
+const PdfWatermark = dynamic(() => import("@/components/PdfWatermark"), {
+  ssr: false,
+});
+
+const PdfProtect = dynamic(() => import("@/components/PdfProtect"), {
+  ssr: false,
+});
+
 const icons = {
   edit: PenTool,
   organize: Layout,
   compress: Minimize2,
   merge: Combine,
   split: Scissors,
+  watermark: Stamp,
+  protect: Lock,
 } as const;
 
 export default function PdfEditorApp({ tool }: Readonly<{ tool: ToolId }>) {
@@ -70,6 +80,8 @@ export default function PdfEditorApp({ tool }: Readonly<{ tool: ToolId }>) {
         {tool === "compress" && <PdfCompress />}
         {tool === "merge" && <PdfMerge />}
         {tool === "split" && <PdfSplit />}
+        {tool === "watermark" && <PdfWatermark />}
+        {tool === "protect" && <PdfProtect />}
       </div>
     </main>
   );

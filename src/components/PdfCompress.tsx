@@ -19,7 +19,7 @@ import {
   LARGE_PDF_PAGES,
   type CompressionLevel,
 } from "@/lib/compress";
-import { formatSize } from "@/lib/utils";
+import { downloadBlob, formatSize } from "@/lib/utils";
 
 type Mode = CompressionLevel | "target";
 type Unit = "KB" | "MB";
@@ -84,14 +84,7 @@ export default function PdfCompress() {
 
   const download = (blob: Blob) => {
     if (!file) return;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `compressed_${file.name.replace(/\.[^/.]+$/, "")}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `compressed_${file.name.replace(/\.[^/.]+$/, "")}.pdf`);
   };
 
   const compressPdf = async () => {
