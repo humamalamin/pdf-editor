@@ -3,7 +3,7 @@ export const siteConfig = {
   title: "PDFEditor - Private Browser-Based PDF Editor",
   description:
     "Edit, annotate, sign, organize, compress, merge, and split PDF files securely in your browser without uploading documents to a server.",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  url: process.env.NEXT_PUBLIC_SITE_URL,
   ogImage: "/cover.jpg",
   keywords: [
     "PDF editor",
