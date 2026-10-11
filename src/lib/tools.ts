@@ -73,11 +73,16 @@ export const tools: Record<ToolId, ToolConfig> = {
       "Reduce PDF file size right in your browser. Compress documents for email or upload without sending them to a server.",
     steps: [
       "Open a PDF from your device.",
-      "Choose a compression level.",
+      "Choose a compression level, or set a target file size such as 500 KB.",
       "Download the smaller PDF.",
     ],
     faq: [
       privacyFaq,
+      {
+        question: "Can I compress a PDF to a specific size?",
+        answer:
+          "Yes. Choose Target size, enter the maximum size in KB or MB, and the tool finds the best quality that fits under it.",
+      },
       {
         question: "Will compression reduce quality?",
         answer:
