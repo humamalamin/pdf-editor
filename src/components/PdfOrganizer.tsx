@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Layout, FileText, Download, RotateCw, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 import { PDFDocument, degrees } from "pdf-lib";
 import { pdfjsLib } from "@/lib/pdfjs";
+import { cn } from "@/lib/utils";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type PageState = {
   id: string;
@@ -29,8 +31,7 @@ export default function PdfOrganizer() {
     };
   }, []);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  const handleFile = async (selectedFile: File | undefined) => {
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
       setPages((prev) => {
@@ -88,6 +89,8 @@ export default function PdfOrganizer() {
       }
     }
   };
+
+  const { isDragging, dropProps } = useFileDrop((files) => handleFile(files[0]));
 
   const rotatePage = (id: string) => {
     setPages(prev => prev.map(p => 
@@ -186,7 +189,13 @@ export default function PdfOrganizer() {
         </header>
 
         {!file ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white/50 p-20 dark:border-slate-800 dark:bg-slate-900/30">
+          <div
+            {...dropProps}
+            className={cn(
+              "flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white/50 p-20 dark:border-slate-800 dark:bg-slate-900/30",
+              isDragging && "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
+            )}
+          >
             <label className="flex cursor-pointer flex-col items-center">
               <div className="rounded-full bg-white p-6 shadow-xl dark:bg-slate-800 mb-6 transition-transform hover:scale-110">
                 <Layout className="h-10 w-10 text-purple-500" />
@@ -199,7 +208,7 @@ export default function PdfOrganizer() {
                 type="file"
                 accept="application/pdf"
                 className="hidden"
-                onChange={handleFileChange}
+                onChange={(e) => handleFile(e.target.files?.[0])}
               />
               <div className="mt-8 rounded-xl bg-purple-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-600/20 hover:bg-purple-700 transition-all">
                 Choose File

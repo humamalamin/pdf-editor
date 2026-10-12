@@ -10,7 +10,8 @@ import {
   WrongPasswordError,
   type PdfStatus,
 } from "@/lib/protect";
-import { downloadBlob, formatSize } from "@/lib/utils";
+import { cn, downloadBlob, formatSize } from "@/lib/utils";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type Tab = "lock" | "unlock";
 
@@ -35,9 +36,7 @@ export default function PdfProtect() {
     setError("");
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    e.target.value = "";
+  const handleFile = async (selected: File | undefined) => {
     if (selected?.type !== "application/pdf") return;
     resetResult();
     setPassword("");
@@ -48,6 +47,8 @@ export default function PdfProtect() {
     setStatus(detected);
     if (detected === "password") setTab("unlock");
   };
+
+  const { isDragging, dropProps } = useFileDrop((files) => handleFile(files[0]));
 
   const removeFile = () => {
     setFile(null);
@@ -129,14 +130,23 @@ export default function PdfProtect() {
         </div>
 
         {!file ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white p-16 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div
+            {...dropProps}
+            className={cn(
+              "flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white p-16 shadow-sm dark:border-slate-800 dark:bg-slate-900",
+              isDragging && "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
+            )}
+          >
             <label className="flex cursor-pointer flex-col items-center group">
               <div className="rounded-full bg-blue-50 p-8 shadow-inner dark:bg-blue-900/20 mb-6 transition-transform group-hover:scale-110">
                 {tab === "lock" ? <Lock className="h-12 w-12 text-blue-600" /> : <LockOpen className="h-12 w-12 text-blue-600" />}
               </div>
               <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">Drop PDF here</h3>
               <p className="text-slate-500 dark:text-slate-400 mt-2">or click to browse from your device</p>
-              <input type="file" accept="application/pdf" className="hidden" onChange={handleFileChange} />
+              <input type="file" accept="application/pdf" className="hidden" onChange={(e) => {
+                  handleFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }} />
               <div className="mt-8 rounded-2xl bg-blue-600 px-10 py-3.5 text-lg font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all">
                 Select File
               </div>

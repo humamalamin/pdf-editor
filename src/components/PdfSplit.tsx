@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Scissors, FileText, Download, CheckCircle2 } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
 import { pdfjsLib } from "@/lib/pdfjs";
+import { cn } from "@/lib/utils";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 export default function PdfSplit() {
   const [file, setFile] = useState<File | null>(null);
@@ -18,8 +20,7 @@ export default function PdfSplit() {
     };
   }, [thumbnails]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  const handleFile = async (selectedFile: File | undefined) => {
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
       setSelectedPages([]);
@@ -61,6 +62,8 @@ export default function PdfSplit() {
       setThumbnails(thumbs);
     }
   };
+
+  const { isDragging, dropProps } = useFileDrop((files) => handleFile(files[0]));
 
   const togglePage = (pageIndex: number) => {
     setSelectedPages(prev => 
@@ -143,7 +146,13 @@ export default function PdfSplit() {
         </header>
 
         {!file ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white/50 p-20 dark:border-slate-800 dark:bg-slate-900/30">
+          <div
+            {...dropProps}
+            className={cn(
+              "flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white/50 p-20 dark:border-slate-800 dark:bg-slate-900/30",
+              isDragging && "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
+            )}
+          >
             <label className="flex cursor-pointer flex-col items-center">
               <div className="rounded-full bg-white p-6 shadow-xl dark:bg-slate-800 mb-6 group-hover:scale-110 transition-transform">
                 <Scissors className="h-10 w-10 text-orange-500" />
@@ -156,7 +165,7 @@ export default function PdfSplit() {
                 type="file"
                 accept="application/pdf"
                 className="hidden"
-                onChange={handleFileChange}
+                onChange={(e) => handleFile(e.target.files?.[0])}
               />
               <div className="mt-8 rounded-xl bg-orange-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">
                 Choose File

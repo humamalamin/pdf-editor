@@ -19,7 +19,8 @@ import {
   LARGE_PDF_PAGES,
   type CompressionLevel,
 } from "@/lib/compress";
-import { downloadBlob, formatSize } from "@/lib/utils";
+import { cn, downloadBlob, formatSize } from "@/lib/utils";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type Mode = CompressionLevel | "target";
 type Unit = "KB" | "MB";
@@ -68,8 +69,7 @@ export default function PdfCompress() {
   const targetAlreadyMet =
     targetBytes !== null && !targetInvalid && targetBytes >= originalSize;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  const handleFile = (selectedFile: File | undefined) => {
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
       setResult(null);
@@ -81,6 +81,8 @@ export default function PdfCompress() {
         .catch(() => setPageCount(null));
     }
   };
+
+  const { isDragging, dropProps } = useFileDrop((files) => handleFile(files[0]));
 
   const download = (blob: Blob) => {
     if (!file) return;
@@ -132,7 +134,13 @@ export default function PdfCompress() {
         </header>
 
         {!file ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white p-20 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div
+            {...dropProps}
+            className={cn(
+              "flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white p-20 shadow-sm dark:border-slate-800 dark:bg-slate-900",
+              isDragging && "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
+            )}
+          >
             <label className="flex cursor-pointer flex-col items-center group">
               <div className="rounded-full bg-blue-50 p-8 shadow-inner dark:bg-blue-900/20 mb-6 transition-transform group-hover:scale-110">
                 <Minimize2 className="h-12 w-12 text-blue-600" />
@@ -143,7 +151,7 @@ export default function PdfCompress() {
                 type="file"
                 accept="application/pdf"
                 className="hidden"
-                onChange={handleFileChange}
+                onChange={(e) => handleFile(e.target.files?.[0])}
               />
               <div className="mt-8 rounded-2xl bg-blue-600 px-10 py-3.5 text-lg font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all">
                 Select File

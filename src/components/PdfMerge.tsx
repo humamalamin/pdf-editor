@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Upload, FileText, X, Combine, Download, MoveUp, MoveDown } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
+import { cn } from "@/lib/utils";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type MergeFile = {
   id: string;
@@ -14,8 +16,7 @@ export default function PdfMerge() {
   const [files, setFiles] = useState<MergeFile[]>([]);
   const [isMerging, setIsMerging] = useState(false);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
+  const handleFiles = async (selectedFiles: File[]) => {
     if (selectedFiles.length === 0) return;
 
     const newFiles: MergeFile[] = [];
@@ -35,8 +36,9 @@ export default function PdfMerge() {
       }
     }
     setFiles((prev) => [...prev, ...newFiles]);
-    e.target.value = ""; // Reset input
   };
+
+  const { isDragging, dropProps } = useFileDrop(handleFiles);
 
   const removeFile = (id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
@@ -86,7 +88,13 @@ export default function PdfMerge() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6">
+    <div
+      {...dropProps}
+      className={cn(
+        "flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6 transition-shadow",
+        isDragging && files.length > 0 && "ring-4 ring-inset ring-blue-400"
+      )}
+    >
       <div className="mx-auto w-full max-w-4xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
@@ -101,13 +109,21 @@ export default function PdfMerge() {
               accept="application/pdf"
               multiple
               className="hidden"
-              onChange={handleFileChange}
+              onChange={(e) => {
+                handleFiles(Array.from(e.target.files || []));
+                e.target.value = "";
+              }}
             />
           </label>
         </header>
 
         {files.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white/50 p-20 dark:border-slate-800 dark:bg-slate-900/30">
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white/50 p-20 dark:border-slate-800 dark:bg-slate-900/30",
+              isDragging && "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
+            )}
+          >
             <div className="rounded-full bg-white p-6 shadow-xl dark:bg-slate-800 mb-6">
               <Combine className="h-10 w-10 text-blue-500" />
             </div>

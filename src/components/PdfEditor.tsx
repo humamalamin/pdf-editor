@@ -5,6 +5,8 @@ import { Upload, Type, Save, Trash2, ChevronLeft, ChevronRight, PenTool } from "
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { Rnd } from "react-rnd";
 import { pdfjsLib } from "@/lib/pdfjs";
+import { cn } from "@/lib/utils";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type Annotation = {
   id: string;
@@ -114,13 +116,14 @@ export default function PdfEditor() {
   }, [currentPage, pageSize.width]);
 
   // Handlers
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFile = (file: File | undefined) => {
     if (file && file.type === "application/pdf") {
       setPdfFile(file);
       setAnnotations([]);
     }
   };
+
+  const { isDragging, dropProps } = useFileDrop((files) => handleFile(files[0]));
 
   const handleClear = () => {
     setPdfFile(null);
@@ -290,7 +293,13 @@ export default function PdfEditor() {
   if (!pdfFile) {
     return (
       <div className="flex h-full w-full items-center justify-center p-4">
-        <label className="flex h-64 w-full max-w-xl cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white transition-all hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-800/80">
+        <label
+          {...dropProps}
+          className={cn(
+            "flex h-64 w-full max-w-xl cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white transition-all hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-800/80",
+            isDragging && "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
+          )}
+        >
           <Upload className="mb-4 h-12 w-12 text-slate-400" />
           <p className="mb-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
             Click or drag to upload a PDF
@@ -300,7 +309,7 @@ export default function PdfEditor() {
             type="file"
             accept="application/pdf"
             className="hidden"
-            onChange={handleFileUpload}
+            onChange={(e) => handleFile(e.target.files?.[0])}
           />
         </label>
       </div>
