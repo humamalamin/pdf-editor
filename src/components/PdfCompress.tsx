@@ -21,6 +21,7 @@ import {
 } from "@/lib/compress";
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
+import PrivacyNote from "@/components/PrivacyNote";
 
 type Mode = CompressionLevel | "target";
 type Unit = "KB" | "MB";
@@ -129,8 +130,9 @@ export default function PdfCompress() {
     <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6 overflow-auto">
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Compress PDF</h2>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Compress PDF</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Reduce file size while keeping the best possible quality.</p>
+          <PrivacyNote />
         </header>
 
         {!file ? (

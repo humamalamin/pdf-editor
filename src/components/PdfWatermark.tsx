@@ -14,6 +14,7 @@ import {
 } from "@/lib/watermark";
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
+import PrivacyNote from "@/components/PrivacyNote";
 
 const TEXT_PRESETS = ["COPY", "CONFIDENTIAL", "Hanya untuk keperluan "];
 const PREVIEW_WIDTH = 600;
@@ -154,10 +155,11 @@ export default function PdfWatermark() {
     <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6 overflow-auto">
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Watermark PDF</h2>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Watermark PDF</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
             Stamp text like &quot;COPY&quot; across your document, handy before sending an ID copy.
           </p>
+          <PrivacyNote />
         </header>
 
         {!file || !pageInfo ? (

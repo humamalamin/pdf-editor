@@ -38,9 +38,9 @@ export default function ToolPage({ toolId }: Readonly<{ toolId: ToolId }>) {
       <PdfEditorApp tool={toolId} />
       <section className="bg-white px-6 py-12 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
         <div className="mx-auto max-w-3xl space-y-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             {tool.heading}
-          </h1>
+          </h2>
           <p>{tool.description}</p>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
             How it works

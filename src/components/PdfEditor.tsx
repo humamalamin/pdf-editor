@@ -7,6 +7,7 @@ import { Rnd } from "react-rnd";
 import { pdfjsLib } from "@/lib/pdfjs";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
+import PrivacyNote from "@/components/PrivacyNote";
 
 type Annotation = {
   id: string;
@@ -292,7 +293,14 @@ export default function PdfEditor() {
 
   if (!pdfFile) {
     return (
-      <div className="flex h-full w-full items-center justify-center p-4">
+      <div className="flex h-full w-full flex-col items-center justify-center overflow-auto p-4">
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Edit PDF</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
+            Add text, images, or your signature to any PDF.
+          </p>
+          <PrivacyNote />
+        </header>
         <label
           {...dropProps}
           className={cn(

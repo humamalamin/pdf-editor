@@ -12,6 +12,7 @@ import {
 } from "@/lib/protect";
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
+import PrivacyNote from "@/components/PrivacyNote";
 
 type Tab = "lock" | "unlock";
 
@@ -105,10 +106,11 @@ export default function PdfProtect() {
     <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6 overflow-auto">
       <div className="mx-auto w-full max-w-2xl">
         <header className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Protect PDF</h2>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Protect PDF</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
             Lock a PDF with a password, or remove the password from one you own.
           </p>
+          <PrivacyNote />
         </header>
 
         <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-slate-200/60 p-1 dark:bg-slate-900">

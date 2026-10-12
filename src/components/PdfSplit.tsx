@@ -6,6 +6,7 @@ import { PDFDocument } from "pdf-lib";
 import { pdfjsLib } from "@/lib/pdfjs";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
+import PrivacyNote from "@/components/PrivacyNote";
 
 export default function PdfSplit() {
   const [file, setFile] = useState<File | null>(null);
@@ -126,6 +127,7 @@ export default function PdfSplit() {
           <div>
             <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Split PDF</h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Extract specific pages from your PDF file into a new document.</p>
+            <PrivacyNote />
           </div>
           {file && (
             <button 

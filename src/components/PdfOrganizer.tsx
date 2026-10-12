@@ -6,6 +6,7 @@ import { PDFDocument, degrees } from "pdf-lib";
 import { pdfjsLib } from "@/lib/pdfjs";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
+import PrivacyNote from "@/components/PrivacyNote";
 
 type PageState = {
   id: string;
@@ -171,6 +172,7 @@ export default function PdfOrganizer() {
           <div>
             <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Organize Pages</h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Reorder, rotate, or remove pages from your PDF.</p>
+            <PrivacyNote />
           </div>
           {file && !isProcessing && (
              <button 
