@@ -60,6 +60,8 @@ export function snapToAngle(dx: number, dy: number) {
   return { dx: Math.cos(angle) * length, dy: Math.sin(angle) * length };
 }
 
+export type LineChangeInfo = { mode: "move" | "start" | "end"; altKey: boolean; shiftKey: boolean };
+
 type Drag = { mode: "move" | "start" | "end"; pointerX: number; pointerY: number; origin: Annotation; moved: boolean };
 
 /**
@@ -72,7 +74,9 @@ export function LineShape({
   pageWidth,
   pageHeight,
   isSelected,
-  onSelect,
+  isOnlySelected,
+  onPress,
+  onClickLine,
   onBeforeChange,
   onChange,
   onInteractionEnd,
@@ -82,10 +86,12 @@ export function LineShape({
   scale: number;
   pageWidth: number; // PDF points
   pageHeight: number;
-  isSelected: boolean;
-  onSelect: () => void;
+  isSelected: boolean; // highlighted (alone or as part of a group)
+  isOnlySelected: boolean; // the lone selection: shows end handles and the toolbar
+  onPress: (e: React.PointerEvent) => void;
+  onClickLine: (e: React.MouseEvent) => void;
   onBeforeChange: () => void; // called once when a drag actually starts changing the line
-  onChange: (updates: Partial<Annotation>) => void;
+  onChange: (updates: Partial<Annotation>, info: LineChangeInfo) => void;
   onInteractionEnd: () => void;
   toolbar?: React.ReactNode;
 }) {
@@ -109,7 +115,7 @@ export function LineShape({
   const startDrag = (mode: Drag["mode"]) => (e: React.PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    onSelect();
+    onPress(e);
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     drag.current = { mode, pointerX: e.clientX, pointerY: e.clientY, origin: ann, moved: false };
   };
@@ -125,12 +131,13 @@ export function LineShape({
       onBeforeChange();
     }
     const o = { x1: d.origin.x, y1: d.origin.y, x2: d.origin.x2 ?? d.origin.x, y2: d.origin.y2 ?? d.origin.y };
+    const info: LineChangeInfo = { mode: d.mode, altKey: e.altKey, shiftKey: e.shiftKey };
 
     if (d.mode === "move") {
       // Clamp the whole line so neither end leaves the page
       const mx = Math.min(pageWidth - Math.max(o.x1, o.x2), Math.max(-Math.min(o.x1, o.x2), dx));
       const my = Math.min(pageHeight - Math.max(o.y1, o.y2), Math.max(-Math.min(o.y1, o.y2), dy));
-      onChange({ x: o.x1 + mx, y: o.y1 + my, x2: o.x2 + mx, y2: o.y2 + my });
+      onChange({ x: o.x1 + mx, y: o.y1 + my, x2: o.x2 + mx, y2: o.y2 + my }, info);
       return;
     }
 
@@ -141,7 +148,7 @@ export function LineShape({
     if (e.shiftKey) ({ dx: vx, dy: vy } = snapToAngle(vx, vy));
     const nx = clampX(fixedX + vx);
     const ny = clampY(fixedY + vy);
-    onChange(d.mode === "start" ? { x: nx, y: ny } : { x2: nx, y2: ny });
+    onChange(d.mode === "start" ? { x: nx, y: ny } : { x2: nx, y2: ny }, info);
   };
 
   const onPointerUp = () => {
@@ -165,7 +172,8 @@ export function LineShape({
     <div
       className={cn("pdf-annotation pointer-events-none absolute", isSelected ? "z-20" : "z-10")}
       style={{ left, top, width, height }}
-      onClick={(e) => e.stopPropagation()}
+      data-ann-id={ann.id}
+      onClick={onClickLine}
     >
       <svg width={width} height={height} className="block overflow-visible">
         {isSelected && (
@@ -196,13 +204,13 @@ export function LineShape({
           onPointerUp={onPointerUp}
         />
       </svg>
-      {isSelected && (
+      {isOnlySelected && (
         <div className="pointer-events-auto">
           {handle(p1, "start")}
           {handle(p2, "end")}
         </div>
       )}
-      {isSelected && toolbar && (
+      {isOnlySelected && toolbar && (
         <div
           className={cn(
             "pointer-events-auto absolute z-30",

@@ -1,6 +1,7 @@
 import { BlendMode, LineCapStyle, PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import {
+  FONTS,
   DEFAULT_TEXT_FORMAT,
   LINE_HEIGHT,
   MIN_TEXT_WIDTH,
@@ -12,6 +13,7 @@ import {
   wrapText,
   type TextFormat,
 } from "@/lib/editorFonts";
+import { applyFormValues, type FormField, type FormValues } from "@/lib/forms";
 import { SHAPE_DEFAULTS, SYMBOL_BOX, SYMBOL_PATHS, type ShapeKind, type ShapeStyle } from "@/lib/shapes";
 
 // All geometry is stored in unscaled PDF points (top-left origin); multiply by `scale` to render.
@@ -39,12 +41,22 @@ export const textBoxWidth = (ann: Annotation) =>
   ann.width ?? Math.max(MIN_TEXT_WIDTH, measureTextWidth(ann.content, formatOf(ann)) + 2);
 
 /**
- * Draws the annotations onto a copy of the PDF. Returns null when the user declines to save
- * text containing characters the chosen fonts can't render.
+ * Draws the annotations (and filled-in form values) onto a copy of the PDF. Returns null when the
+ * user declines to save text containing characters the chosen fonts can't render.
  */
-export async function exportAnnotatedPdf(pdfBytes: ArrayBuffer, annotations: Annotation[]) {
+export async function exportAnnotatedPdf(
+  pdfBytes: ArrayBuffer,
+  annotations: Annotation[],
+  form?: { fields: FormField[]; values: FormValues; changed: string[] }
+) {
   const pdfDocLib = await PDFDocument.load(pdfBytes);
   pdfDocLib.registerFontkit(fontkit);
+
+  if (form) {
+    await applyFormValues(pdfDocLib, form.fields, form.values, form.changed, () =>
+      fetch(FONTS.sans.files.regular).then((res) => res.arrayBuffer())
+    );
+  }
 
   // Embed each font variant once; subsetting keeps only the glyphs actually used
   const textAnns = annotations.filter((ann) => ann.type === "text");

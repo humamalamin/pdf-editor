@@ -11,10 +11,12 @@ export default function PdfPageCanvas({
   pdfDoc,
   pageNumber,
   scale,
+  hideFormWidgets,
 }: {
   pdfDoc: pdfjsLib.PDFDocumentProxy;
   pageNumber: number;
   scale: number;
+  hideFormWidgets: boolean; // form fields are drawn as HTML controls on top instead
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isNearViewport, setIsNearViewport] = useState(false);
@@ -57,7 +59,12 @@ export default function PdfPageCanvas({
       const offscreenCtx = offscreen.getContext("2d");
       if (!offscreenCtx) return;
 
-      renderTask = page.render({ canvasContext: offscreenCtx, viewport, canvas: offscreen });
+      renderTask = page.render({
+        canvasContext: offscreenCtx,
+        viewport,
+        canvas: offscreen,
+        annotationMode: hideFormWidgets ? pdfjsLib.AnnotationMode.ENABLE_FORMS : pdfjsLib.AnnotationMode.ENABLE,
+      });
       try {
         await renderTask.promise;
       } catch (e) {
@@ -78,7 +85,7 @@ export default function PdfPageCanvas({
       clearTimeout(timer);
       renderTask?.cancel();
     };
-  }, [pdfDoc, pageNumber, scale, isNearViewport]);
+  }, [pdfDoc, pageNumber, scale, isNearViewport, hideFormWidgets]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" />;
 }
