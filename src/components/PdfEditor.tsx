@@ -12,17 +12,37 @@ import {
   Redo2,
   ZoomIn,
   ZoomOut,
+  Shapes,
+  Eraser,
+  Highlighter,
+  Square,
+  Circle,
+  Slash,
+  Check,
+  X,
 } from "lucide-react";
 import { Rnd } from "react-rnd";
 import { pdfjsLib } from "@/lib/pdfjs";
 import { DEFAULT_TEXT_FORMAT, LINE_HEIGHT, MIN_TEXT_WIDTH, textCss, type TextFormat } from "@/lib/editorFonts";
-import { exportAnnotatedPdf, formatOf, textBoxWidth, type Annotation } from "@/lib/annotations";
+import { exportAnnotatedPdf, formatOf, styleOf, textBoxWidth, type Annotation } from "@/lib/annotations";
+import {
+  SHAPE_DEFAULTS,
+  SHAPE_DEFAULT_SIZE,
+  isHighlight,
+  isSymbol,
+  type ShapeKind,
+  type ShapeStyle,
+} from "@/lib/shapes";
 import { useUndoable } from "@/lib/useUndoable";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
 import TextToolbar from "@/components/TextToolbar";
+import ShapeToolbar from "@/components/ShapeToolbar";
+import { LineShape, ShapeBody, snapToAngle } from "@/components/ShapeView";
 import PdfPageCanvas from "@/components/PdfPageCanvas";
+import SignatureDialog from "@/components/SignatureDialog";
+import { loadImage } from "@/lib/signature";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
@@ -32,10 +52,30 @@ const DEFAULT_MAX_SCALE = 1.5;
 const SCROLL_PADDING_TOP = 144;
 const SCROLL_PADDING_X = 16;
 const DUPLICATE_OFFSET = 12;
+const SIGNATURE_HEIGHT = 40;
 
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 type PageSize = { width: number; height: number }; // unscaled PDF points
+
+type Tool = "text" | ShapeKind | null;
+// A shape being drawn by dragging on a page (PDF points)
+type Draft = { page: number; kind: ShapeKind; x1: number; y1: number; x2: number; y2: number };
+
+const SHAPE_TOOLS: { kind: ShapeKind; label: string; hint: string; icon: React.ReactNode }[] = [
+  { kind: "whiteout", label: "Whiteout", hint: "Cover content with a white box", icon: <Eraser className="h-5 w-5" strokeWidth={1.5} /> },
+  { kind: "highlight", label: "Highlight", hint: "Mark text with a highlighter", icon: <Highlighter className="h-5 w-5" strokeWidth={1.5} /> },
+  { kind: "rect", label: "Rectangle", hint: "Draw a box", icon: <Square className="h-5 w-5" strokeWidth={1.5} /> },
+  { kind: "ellipse", label: "Ellipse", hint: "Draw a circle or ellipse", icon: <Circle className="h-5 w-5" strokeWidth={1.5} /> },
+  { kind: "line", label: "Line", hint: "Draw a line (Shift snaps to 45°)", icon: <Slash className="h-5 w-5" strokeWidth={1.5} /> },
+  { kind: "check", label: "Check", hint: "Place a check mark", icon: <Check className="h-5 w-5" strokeWidth={1.5} /> },
+  { kind: "cross", label: "Cross", hint: "Place a cross mark", icon: <X className="h-5 w-5" strokeWidth={1.5} /> },
+];
+const MIN_DRAG_PX = 4;
+const MIN_SHAPE_SIZE = 4;
+const LINE_SNAP_TOLERANCE = 3; // PDF points
+
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 function TextBox({
   ann,
@@ -151,7 +191,14 @@ export default function PdfEditor() {
     canRedo,
   } = useUndoable<Annotation[]>([]);
   const [isExporting, setIsExporting] = useState(false);
-  const [isPlacingText, setIsPlacingText] = useState(false);
+  const [tool, setTool] = useState<Tool>(null);
+  const isPlacingText = tool === "text";
+  const activeShapeTool = SHAPE_TOOLS.find((t) => t.kind === tool);
+  const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
+  const shapeMenuRef = useRef<HTMLDivElement>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const lastShapeStyleRef = useRef<Partial<Record<ShapeKind, ShapeStyle>>>({});
+  const [isSignOpen, setIsSignOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [, setFontsVersion] = useState(0);
@@ -300,7 +347,7 @@ export default function PdfEditor() {
     setPdfFile(null);
     setPdfDoc(null);
     resetAnnotations([]);
-    setIsPlacingText(false);
+    setTool(null);
     setSelectedId(null);
     setEditingId(null);
   };
@@ -308,6 +355,7 @@ export default function PdfEditor() {
   // Clicking empty page space either drops a new text box (in Add Text mode) or clears the selection.
   const handlePageClick = (e: React.MouseEvent<HTMLDivElement>, page: number) => {
     if (suppressPageClickRef.current) return;
+    if (tool && tool !== "text") return; // shapes are drawn with pointer events
     if (!isPlacingText) {
       setSelectedId(null);
       return;
@@ -332,48 +380,44 @@ export default function PdfEditor() {
     setAnnotations((prev) => [...prev, newText]);
     setSelectedId(id);
     setEditingId(id);
-    setIsPlacingText(false);
+    setTool(null);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Adds an image (signature) in the middle of the visible part of the current page
+  const addImageAnnotation = async (dataUrl: string) => {
+    const img = await loadImage(dataUrl);
     const page = currentPage;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      const img = new Image();
-      img.onload = () => {
-        const height = 40;
-        const width = height * (img.width / img.height);
-        const pageSize = pageSizes[page - 1];
-        // Drop it in the middle of the visible part of the current page
-        const pageEl = pageRefs.current[page - 1];
-        const el = scrollRef.current;
-        let y = 40;
-        if (pageEl && el) {
-          const viewportMid = el.getBoundingClientRect().top + el.clientHeight / 2;
-          y = (viewportMid - pageEl.getBoundingClientRect().top) / scale - height / 2;
-        }
-        const newImage: Annotation = {
-          id: crypto.randomUUID(),
-          type: "image",
-          page,
-          x: Math.max(0, (pageSize.width - width) / 2),
-          y: Math.min(Math.max(0, y), pageSize.height - height),
-          content: dataUrl,
-          width,
-          height,
-        };
-        checkpoint();
-        setAnnotations((prev) => [...prev, newImage]);
-        setSelectedId(newImage.id);
-      };
-      img.src = dataUrl;
+    const pageSize = pageSizes[page - 1];
+    const height = SIGNATURE_HEIGHT;
+    const width = Math.min(height * (img.width / img.height), pageSize.width * 0.8);
+    const pageEl = pageRefs.current[page - 1];
+    const el = scrollRef.current;
+    let y = 40;
+    if (pageEl && el) {
+      const viewportMid = el.getBoundingClientRect().top + el.clientHeight / 2;
+      y = (viewportMid - pageEl.getBoundingClientRect().top) / scale - height / 2;
+    }
+    let x = Math.max(0, (pageSize.width - width) / 2);
+    y = Math.min(Math.max(0, y), pageSize.height - height);
+    // Cascade instead of stacking exactly on top of a previous insert
+    while (annotations.some((a) => a.page === page && a.type === "image" && Math.abs(a.y - y) < 1)) {
+      x += DUPLICATE_OFFSET;
+      y += DUPLICATE_OFFSET;
+    }
+    const newImage: Annotation = {
+      id: crypto.randomUUID(),
+      type: "image",
+      page,
+      x,
+      y,
+      content: dataUrl,
+      width,
+      height: width / (img.width / img.height),
     };
-    reader.readAsDataURL(file);
-    e.target.value = ""; // Reset input
+    checkpoint();
+    setAnnotations((prev) => [...prev, newImage]);
+    setSelectedId(newImage.id);
+    setTool(null);
   };
 
   const updateAnnotation = (id: string, updates: Partial<Annotation>) => {
@@ -424,7 +468,15 @@ export default function PdfEditor() {
     (id: string) => {
       const ann = annotations.find((a) => a.id === id);
       if (!ann) return;
-      const copy = { ...ann, id: crypto.randomUUID(), x: ann.x + DUPLICATE_OFFSET, y: ann.y + DUPLICATE_OFFSET };
+      const copy = {
+        ...ann,
+        id: crypto.randomUUID(),
+        x: ann.x + DUPLICATE_OFFSET,
+        y: ann.y + DUPLICATE_OFFSET,
+        ...(ann.x2 !== undefined && ann.y2 !== undefined
+          ? { x2: ann.x2 + DUPLICATE_OFFSET, y2: ann.y2 + DUPLICATE_OFFSET }
+          : {}),
+      };
       checkpoint();
       setAnnotations((prev) => [...prev, copy]);
       setSelectedId(copy.id);
@@ -438,6 +490,12 @@ export default function PdfEditor() {
         prev.map((ann) => {
           if (ann.id !== id) return ann;
           const size = pageSizes[ann.page - 1];
+          if (ann.x2 !== undefined && ann.y2 !== undefined) {
+            // Lines move both ends, as far as the page allows
+            const mx = clamp(dx, -Math.min(ann.x, ann.x2), size.width - Math.max(ann.x, ann.x2));
+            const my = clamp(dy, -Math.min(ann.y, ann.y2), size.height - Math.max(ann.y, ann.y2));
+            return { ...ann, x: ann.x + mx, y: ann.y + my, x2: ann.x2 + mx, y2: ann.y2 + my };
+          }
           const width = ann.type === "text" ? textBoxWidth(ann) : ann.width || 0;
           return {
             ...ann,
@@ -449,6 +507,119 @@ export default function PdfEditor() {
     },
     [pageSizes, setAnnotations]
   );
+
+  const updateStyle = (id: string, updates: Partial<ShapeStyle>) => {
+    checkpoint();
+    setAnnotations((prev) =>
+      prev.map((ann) => {
+        if (ann.id !== id || !ann.shape) return ann;
+        const style = { ...styleOf(ann), ...updates };
+        lastShapeStyleRef.current[ann.shape] = style;
+        return { ...ann, style };
+      })
+    );
+  };
+
+  // ---- Drawing shapes ----
+
+  const pointInPage = (e: React.PointerEvent<HTMLDivElement>, page: number) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const size = pageSizes[page - 1];
+    return {
+      x: clamp((e.clientX - rect.left) / scale, 0, size.width),
+      y: clamp((e.clientY - rect.top) / scale, 0, size.height),
+    };
+  };
+
+  // Turns a drag (or a plain click) into a shape annotation
+  const shapeFromDraft = (d: Draft, id: string): Annotation => {
+    const { kind } = d;
+    const size = pageSizes[d.page - 1];
+    const style = lastShapeStyleRef.current[kind] ?? SHAPE_DEFAULTS[kind];
+    const base: Annotation = { id, type: "shape", page: d.page, shape: kind, style, content: "", x: 0, y: 0 };
+    const dx = d.x2 - d.x1;
+    const dy = d.y2 - d.y1;
+    const dragged = Math.hypot(dx, dy) * scale > MIN_DRAG_PX;
+
+    if (kind === "line") {
+      if (!dragged) {
+        const half = SHAPE_DEFAULT_SIZE.line.width / 2;
+        return { ...base, x: clamp(d.x1 - half, 0, size.width), y: d.y1, x2: clamp(d.x1 + half, 0, size.width), y2: d.y1 };
+      }
+      // Nearly level/upright lines are almost always meant to be exactly level/upright
+      const x2 = Math.abs(dx) < LINE_SNAP_TOLERANCE ? d.x1 : d.x2;
+      const y2 = Math.abs(dy) < LINE_SNAP_TOLERANCE ? d.y1 : d.y2;
+      return { ...base, x: d.x1, y: d.y1, x2, y2 };
+    }
+
+    let { width, height } = SHAPE_DEFAULT_SIZE[kind];
+    let x: number;
+    let y: number;
+    if (!dragged) {
+      x = d.x1 - width / 2;
+      y = d.y1 - height / 2;
+    } else if (isSymbol(kind)) {
+      width = height = Math.max(8, Math.abs(dx), Math.abs(dy));
+      x = dx < 0 ? d.x1 - width : d.x1;
+      y = dy < 0 ? d.y1 - height : d.y1;
+    } else {
+      x = Math.min(d.x1, d.x2);
+      y = Math.min(d.y1, d.y2);
+      width = Math.max(MIN_SHAPE_SIZE, Math.abs(dx));
+      height = Math.max(MIN_SHAPE_SIZE, Math.abs(dy));
+    }
+    width = Math.min(width, size.width);
+    height = Math.min(height, size.height);
+    return {
+      ...base,
+      x: clamp(x, 0, size.width - width),
+      y: clamp(y, 0, size.height - height),
+      width,
+      height,
+    };
+  };
+
+  const handlePagePointerDown = (e: React.PointerEvent<HTMLDivElement>, page: number) => {
+    if (!tool || tool === "text" || e.button !== 0) return;
+    if ((e.target as HTMLElement).closest(".pdf-annotation")) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const p = pointInPage(e, page);
+    setSelectedId(null);
+    setDraft({ page, kind: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y });
+  };
+
+  const handlePagePointerMove = (e: React.PointerEvent<HTMLDivElement>, page: number) => {
+    if (!draft || draft.page !== page) return;
+    let { x, y } = pointInPage(e, page);
+    if (draft.kind === "line" && e.shiftKey) {
+      const snapped = snapToAngle(x - draft.x1, y - draft.y1);
+      x = clamp(draft.x1 + snapped.dx, 0, pageSizes[page - 1].width);
+      y = clamp(draft.y1 + snapped.dy, 0, pageSizes[page - 1].height);
+    }
+    setDraft({ ...draft, x2: x, y2: y });
+  };
+
+  const handlePagePointerUp = () => {
+    if (!draft) return;
+    const shape = shapeFromDraft(draft, crypto.randomUUID());
+    setDraft(null);
+    checkpoint();
+    setAnnotations((prev) => [...prev, shape]);
+    setSelectedId(shape.id);
+    setTool(null);
+    suppressNextPageClick();
+  };
+
+  // Close the shapes menu on outside click
+  useEffect(() => {
+    if (!isShapeMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!shapeMenuRef.current?.contains(e.target as Node)) setIsShapeMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [isShapeMenuOpen]);
 
   const startEditing = useCallback(
     (id: string) => {
@@ -485,7 +656,7 @@ export default function PdfEditor() {
 
   // Editor-wide shortcuts. Typing inside a field keeps its native behaviour (incl. textarea undo).
   useEffect(() => {
-    if (!pdfDoc) return;
+    if (!pdfDoc || isSignOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest("input, textarea, select, [contenteditable]")) return;
@@ -508,7 +679,9 @@ export default function PdfEditor() {
       }
 
       if (e.key === "Escape") {
-        setIsPlacingText(false);
+        setTool(null);
+        setDraft(null);
+        setIsShapeMenuOpen(false);
         setSelectedId(null);
         return;
       }
@@ -538,6 +711,7 @@ export default function PdfEditor() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     pdfDoc,
+    isSignOpen,
     selectedId,
     annotations,
     undo,
@@ -616,6 +790,11 @@ export default function PdfEditor() {
     const isSelected = ann.id === selectedId;
     const isEditing = ann.id === editingId;
     const isText = ann.type === "text";
+    const isShape = ann.type === "shape";
+    const kind = ann.shape ?? "rect";
+    // Flat covers keep their stacking order when selected, so text placed on top stays visible
+    const keepsStackOrder = isShape && (kind === "whiteout" || isHighlight(kind));
+    const lockAspect = ann.type === "image" || (isShape && isSymbol(kind));
     const handle = (
       <div className="flex h-full w-full items-center justify-center">
         <div className="h-2.5 w-2.5 rounded-full border-2 border-white bg-blue-500 shadow" />
@@ -637,15 +816,30 @@ export default function PdfEditor() {
             ? false
             : isText
               ? { left: true, right: true }
-              : { topLeft: true, topRight: true, bottomLeft: true, bottomRight: true }
+              : lockAspect
+                ? { topLeft: true, topRight: true, bottomLeft: true, bottomRight: true }
+                : true
         }
-        lockAspectRatio={!isText}
+        lockAspectRatio={lockAspect}
         resizeHandleComponent={
           isText
             ? { left: handle, right: handle }
-            : { topLeft: handle, topRight: handle, bottomLeft: handle, bottomRight: handle }
+            : lockAspect
+              ? { topLeft: handle, topRight: handle, bottomLeft: handle, bottomRight: handle }
+              : {
+                  top: handle,
+                  bottom: handle,
+                  left: handle,
+                  right: handle,
+                  topLeft: handle,
+                  topRight: handle,
+                  bottomLeft: handle,
+                  bottomRight: handle,
+                }
         }
         resizeHandleStyles={{
+          top: { height: 20, top: -10 },
+          bottom: { height: 20, bottom: -10 },
           left: { width: 20, left: -10 },
           right: { width: 20, right: -10 },
           topLeft: { width: 20, height: 20, top: -10, left: -10 },
@@ -667,12 +861,18 @@ export default function PdfEditor() {
           updateAnnotation(ann.id, {
             x: position.x / scale,
             y: position.y / scale,
-            width: Math.max(MIN_TEXT_WIDTH, ref.offsetWidth / scale),
-            ...(isText ? {} : { height: ref.offsetHeight / scale }),
+            width: Math.max(isText ? MIN_TEXT_WIDTH : MIN_SHAPE_SIZE, ref.offsetWidth / scale),
+            ...(isText ? {} : { height: Math.max(MIN_SHAPE_SIZE, ref.offsetHeight / scale) }),
           });
         }}
         bounds="parent"
-        className={cn(isSelected ? "z-20" : "z-10", isEditing ? "cursor-text" : "cursor-move")}
+        className={cn(
+          "pdf-annotation",
+          isSelected && !keepsStackOrder ? "z-20" : "z-10",
+          isEditing ? "cursor-text" : "cursor-move"
+        )}
+        // Blend on the Rnd element itself: its transform makes it the stacking context
+        style={isShape && isHighlight(kind) ? { mixBlendMode: "multiply" } : undefined}
       >
         <div
           className={cn(
@@ -699,15 +899,26 @@ export default function PdfEditor() {
                 ann.x * scale > pageWidthPx / 2 ? "right-0" : "left-0"
               )}
             >
-              <TextToolbar
-                format={isText ? formatOf(ann) : undefined}
-                onChange={(updates) => updateFormat(ann.id, updates)}
-                onDelete={() => deleteAnnotation(ann.id)}
-              />
+              {isShape ? (
+                <ShapeToolbar
+                  kind={kind}
+                  style={styleOf(ann)}
+                  onChange={(updates) => updateStyle(ann.id, updates)}
+                  onDelete={() => deleteAnnotation(ann.id)}
+                />
+              ) : (
+                <TextToolbar
+                  format={isText ? formatOf(ann) : undefined}
+                  onChange={(updates) => updateFormat(ann.id, updates)}
+                  onDelete={() => deleteAnnotation(ann.id)}
+                />
+              )}
             </div>
           )}
 
-          {isText ? (
+          {isShape ? (
+            <ShapeBody ann={ann} scale={scale} />
+          ) : isText ? (
             <TextBox
               ann={ann}
               scale={scale}
@@ -730,6 +941,63 @@ export default function PdfEditor() {
     );
   };
 
+  const renderLine = (ann: Annotation, size: PageSize) => (
+    <LineShape
+      key={ann.id}
+      ann={ann}
+      scale={scale}
+      pageWidth={size.width}
+      pageHeight={size.height}
+      isSelected={ann.id === selectedId}
+      onSelect={() => setSelectedId(ann.id)}
+      onBeforeChange={checkpoint}
+      onChange={(updates) => updateAnnotation(ann.id, updates)}
+      onInteractionEnd={suppressNextPageClick}
+      toolbar={
+        <ShapeToolbar
+          kind="line"
+          style={styleOf(ann)}
+          onChange={(updates) => updateStyle(ann.id, updates)}
+          onDelete={() => deleteAnnotation(ann.id)}
+        />
+      }
+    />
+  );
+
+  // Live preview of the shape being dragged out
+  const renderDraft = (d: Draft) => {
+    const preview = shapeFromDraft(d, "draft");
+    if (preview.shape === "line") {
+      return (
+        <svg className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
+          <line
+            x1={preview.x * scale}
+            y1={preview.y * scale}
+            x2={(preview.x2 ?? preview.x) * scale}
+            y2={(preview.y2 ?? preview.y) * scale}
+            stroke={styleOf(preview).stroke}
+            strokeWidth={styleOf(preview).strokeWidth * scale}
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    }
+    return (
+      <div
+        className="pointer-events-none absolute z-30 outline outline-1 outline-dashed outline-blue-500"
+        style={{
+          left: preview.x * scale,
+          top: preview.y * scale,
+          width: (preview.width ?? 0) * scale,
+          height: (preview.height ?? 0) * scale,
+          mixBlendMode: isHighlight(d.kind) ? "multiply" : undefined,
+        }}
+      >
+        <ShapeBody ann={preview} scale={scale} />
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 relative overflow-hidden">
       {/* Floating Glassmorphism Toolbar */}
@@ -744,16 +1012,65 @@ export default function PdfEditor() {
           label="Add Text"
           title={isPlacingText ? "Click the PDF to place text (Esc to cancel)" : "Add Text"}
           active={isPlacingText}
-          onClick={() => setIsPlacingText((placing) => !placing)}
+          onClick={() => setTool((t) => (t === "text" ? null : "text"))}
         >
           <Type className="h-6 w-6" strokeWidth={1.5} />
         </ToolbarButton>
 
-        <label className="group flex w-[4.5rem] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl bg-blue-500 p-2 text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-600 hover:-translate-y-0.5">
+        <ToolbarButton
+          label="Sign"
+          title="Draw, type or upload a signature"
+          onClick={() => setIsSignOpen(true)}
+          className="bg-blue-500 text-white shadow-md shadow-blue-500/20 hover:-translate-y-0.5 hover:bg-blue-600 hover:text-white dark:text-white dark:hover:bg-blue-600 dark:hover:text-white"
+        >
           <PenTool className="h-6 w-6" strokeWidth={1.5} />
-          <span className="text-[11px] font-semibold tracking-wide">Sign</span>
-          <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleImageUpload} />
-        </label>
+        </ToolbarButton>
+
+        <div ref={shapeMenuRef} className="relative">
+          <ToolbarButton
+            label={activeShapeTool?.label ?? "Shapes"}
+            title={activeShapeTool ? `${activeShapeTool.hint} — drag on the page (Esc to cancel)` : "Whiteout, highlight and shapes"}
+            active={!!activeShapeTool || isShapeMenuOpen}
+            onClick={() => setIsShapeMenuOpen((open) => !open)}
+          >
+            {activeShapeTool ? (
+              <span className="flex h-6 w-6 items-center justify-center">{activeShapeTool.icon}</span>
+            ) : (
+              <Shapes className="h-6 w-6" strokeWidth={1.5} />
+            )}
+          </ToolbarButton>
+          {isShapeMenuOpen && (
+            <div
+              role="menu"
+              className="absolute left-1/2 top-full z-50 mt-3 w-60 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+            >
+              {SHAPE_TOOLS.map((t) => (
+                <button
+                  key={t.kind}
+                  role="menuitem"
+                  type="button"
+                  onClick={() => {
+                    setTool(t.kind);
+                    setSelectedId(null);
+                    setIsShapeMenuOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                    tool === t.kind
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                      : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <span className="text-slate-500 dark:text-slate-400">{t.icon}</span>
+                  <span className="flex flex-col">
+                    <span className="font-medium">{t.label}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{t.hint}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <ToolbarDivider />
 
@@ -768,7 +1085,7 @@ export default function PdfEditor() {
 
         <ToolbarButton
           label={isExporting ? "Saving..." : "Save"}
-          title={annotations.length === 0 ? "Add text or a signature first" : "Download the edited PDF"}
+          title={annotations.length === 0 ? "Add text, a signature or a shape first" : "Download the edited PDF"}
           onClick={downloadPdf}
           disabled={isExporting || annotations.length === 0}
           className="hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
@@ -791,19 +1108,36 @@ export default function PdfEditor() {
                     pageRefs.current[i] = el;
                   }}
                   onClick={(e) => handlePageClick(e, page)}
+                  onPointerDown={(e) => handlePagePointerDown(e, page)}
+                  onPointerMove={(e) => handlePagePointerMove(e, page)}
+                  onPointerUp={handlePagePointerUp}
                   className={cn(
                     "relative shrink-0 bg-white shadow-xl",
-                    isPlacingText && "cursor-crosshair ring-2 ring-blue-500/40"
+                    tool && "cursor-crosshair ring-2 ring-blue-500/40",
+                    tool && tool !== "text" && "touch-none select-none"
                   )}
                   style={{ width: widthPx, height: size.height * scale, scrollMarginTop: SCROLL_PADDING_TOP - 8 }}
                 >
                   <PdfPageCanvas pdfDoc={pdfDoc} pageNumber={page} scale={scale} />
-                  {annotations.filter((a) => a.page === page).map((ann) => renderAnnotation(ann, widthPx))}
+                  {annotations
+                    .filter((a) => a.page === page)
+                    .map((ann) => (ann.shape === "line" ? renderLine(ann, size) : renderAnnotation(ann, widthPx)))}
+                  {draft?.page === page && renderDraft(draft)}
                 </div>
               );
             })}
         </div>
       </div>
+
+      {isSignOpen && (
+        <SignatureDialog
+          onClose={() => setIsSignOpen(false)}
+          onInsert={(dataUrl) => {
+            setIsSignOpen(false);
+            addImageAnnotation(dataUrl);
+          }}
+        />
+      )}
 
       {/* Floating zoom + pagination, bottom right */}
       <div className="absolute bottom-6 right-6 z-50 flex items-center gap-1 rounded-xl bg-white/90 p-1.5 shadow-lg backdrop-blur-md border border-slate-200/60 text-slate-600 dark:bg-slate-800/90 dark:border-slate-700/60 dark:text-slate-300">

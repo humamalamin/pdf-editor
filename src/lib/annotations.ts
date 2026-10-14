@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, type PDFFont } from "pdf-lib";
+import { BlendMode, LineCapStyle, PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import {
   DEFAULT_TEXT_FORMAT,
@@ -12,11 +12,12 @@ import {
   wrapText,
   type TextFormat,
 } from "@/lib/editorFonts";
+import { SHAPE_DEFAULTS, SYMBOL_BOX, SYMBOL_PATHS, type ShapeKind, type ShapeStyle } from "@/lib/shapes";
 
 // All geometry is stored in unscaled PDF points (top-left origin); multiply by `scale` to render.
 export type Annotation = {
   id: string;
-  type: "text" | "image";
+  type: "text" | "image" | "shape";
   page: number;
   x: number;
   y: number;
@@ -24,9 +25,15 @@ export type Annotation = {
   width?: number; // text: undefined = grow with content (no wrapping); set = wrap at this width
   height?: number;
   format?: TextFormat; // text only
+  shape?: ShapeKind; // shape only
+  style?: ShapeStyle; // shape only
+  x2?: number; // line only: end point (x, y is the start point)
+  y2?: number;
 };
 
 export const formatOf = (ann: Annotation): TextFormat => ann.format ?? DEFAULT_TEXT_FORMAT;
+
+export const styleOf = (ann: Annotation): ShapeStyle => ann.style ?? SHAPE_DEFAULTS[ann.shape ?? "rect"];
 
 export const textBoxWidth = (ann: Annotation) =>
   ann.width ?? Math.max(MIN_TEXT_WIDTH, measureTextWidth(ann.content, formatOf(ann)) + 2);
@@ -91,6 +98,8 @@ export async function exportAnnotatedPdf(pdfBytes: ArrayBuffer, annotations: Ann
           color: rgb(...hexToRgb01(format.color)),
         });
       });
+    } else if (ann.type === "shape") {
+      drawShape(pdfPage, ann, left, top);
     } else if (ann.type === "image") {
       const embeddedImage = ann.content.includes("image/png")
         ? await pdfDocLib.embedPng(ann.content)
@@ -108,4 +117,82 @@ export async function exportAnnotatedPdf(pdfBytes: ArrayBuffer, annotations: Ann
   }
 
   return pdfDocLib.save();
+}
+
+function drawShape(pdfPage: PDFPage, ann: Annotation, left: number, top: number) {
+  const kind = ann.shape ?? "rect";
+  const style = styleOf(ann);
+  const stroke = rgb(...hexToRgb01(style.stroke));
+  const fill = style.fill ? rgb(...hexToRgb01(style.fill)) : undefined;
+  const w = ann.width ?? 0;
+  const h = ann.height ?? 0;
+  // Strokes are drawn inside the box, matching the SVG rendering in the editor
+  const sw = style.strokeWidth;
+
+  switch (kind) {
+    case "whiteout":
+    case "highlight":
+      pdfPage.drawRectangle({
+        x: left,
+        y: top - h,
+        width: w,
+        height: h,
+        color: fill ?? stroke,
+        opacity: style.opacity,
+        // Multiply keeps the text under a highlight dark instead of washing it out
+        blendMode: kind === "highlight" ? BlendMode.Multiply : undefined,
+      });
+      break;
+    case "rect":
+      pdfPage.drawRectangle({
+        x: left + sw / 2,
+        y: top - h + sw / 2,
+        width: Math.max(0, w - sw),
+        height: Math.max(0, h - sw),
+        borderColor: stroke,
+        borderWidth: sw,
+        color: fill,
+        opacity: style.opacity,
+        borderOpacity: style.opacity,
+      });
+      break;
+    case "ellipse":
+      pdfPage.drawEllipse({
+        x: left + w / 2,
+        y: top - h / 2,
+        xScale: Math.max(0, (w - sw) / 2),
+        yScale: Math.max(0, (h - sw) / 2),
+        borderColor: stroke,
+        borderWidth: sw,
+        color: fill,
+        opacity: style.opacity,
+        borderOpacity: style.opacity,
+      });
+      break;
+    case "line":
+      pdfPage.drawLine({
+        start: { x: left, y: top },
+        end: { x: left + ((ann.x2 ?? ann.x) - ann.x), y: top - ((ann.y2 ?? ann.y) - ann.y) },
+        thickness: sw,
+        color: stroke,
+        opacity: style.opacity,
+        lineCap: LineCapStyle.Round,
+      });
+      break;
+    case "check":
+    case "cross": {
+      // drawSvgPath scales the line width together with the path
+      const scale = w / SYMBOL_BOX;
+      pdfPage.drawSvgPath(SYMBOL_PATHS[kind], {
+        x: left,
+        y: top,
+        scale,
+        borderColor: stroke,
+        borderWidth: sw / scale,
+        borderLineCap: LineCapStyle.Round,
+        borderOpacity: style.opacity,
+      });
+      break;
+    }
+  }
 }
