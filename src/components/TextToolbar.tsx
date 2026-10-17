@@ -10,6 +10,7 @@ import {
   ToolbarIconButton,
   ToolbarShell,
 } from "@/components/FloatingToolbar";
+import { useI18n } from "@/i18n/client";
 
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 60, 72];
 const MIN_SIZE = 6;
@@ -27,6 +28,8 @@ export default function TextToolbar({
   onChange: (updates: Partial<TextFormat>) => void;
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
+  const tb = t.toolbar;
   const [sizeDraft, setSizeDraft] = React.useState<string | null>(null);
 
   const commitSize = () => {
@@ -36,9 +39,9 @@ export default function TextToolbar({
   };
 
   const alignOptions: { value: TextAlign; icon: React.ReactNode; title: string }[] = [
-    { value: "left", icon: <AlignLeft className="h-4 w-4" />, title: "Align left" },
-    { value: "center", icon: <AlignCenter className="h-4 w-4" />, title: "Align center" },
-    { value: "right", icon: <AlignRight className="h-4 w-4" />, title: "Align right" },
+    { value: "left", icon: <AlignLeft className="h-4 w-4" />, title: tb.alignLeft },
+    { value: "center", icon: <AlignCenter className="h-4 w-4" />, title: tb.alignCenter },
+    { value: "right", icon: <AlignRight className="h-4 w-4" />, title: tb.alignRight },
   ];
 
   return (
@@ -48,7 +51,7 @@ export default function TextToolbar({
           <select
             value={format.fontFamily}
             onChange={(e) => onChange({ fontFamily: e.target.value as FontKey })}
-            title="Font"
+            title={tb.font}
             className="h-7 rounded-md border border-slate-200 bg-white px-1.5 text-xs outline-none hover:bg-slate-50 focus:border-blue-400"
           >
             {(Object.keys(FONTS) as FontKey[]).map((key) => (
@@ -59,13 +62,13 @@ export default function TextToolbar({
           </select>
 
           <div className="flex items-center">
-            <ToolbarIconButton title="Decrease font size" onClick={() => onChange({ fontSize: clampSize(format.fontSize - 1) })}>
+            <ToolbarIconButton title={tb.decreaseSize} onClick={() => onChange({ fontSize: clampSize(format.fontSize - 1) })}>
               <Minus className="h-3.5 w-3.5" />
             </ToolbarIconButton>
             <input
               list="pdf-editor-font-sizes"
               inputMode="numeric"
-              title="Font size (pt)"
+              title={tb.fontSize}
               value={sizeDraft ?? String(format.fontSize)}
               onFocus={(e) => e.target.select()}
               onChange={(e) => {
@@ -95,17 +98,17 @@ export default function TextToolbar({
                 <option key={s} value={s} />
               ))}
             </datalist>
-            <ToolbarIconButton title="Increase font size" onClick={() => onChange({ fontSize: clampSize(format.fontSize + 1) })}>
+            <ToolbarIconButton title={tb.increaseSize} onClick={() => onChange({ fontSize: clampSize(format.fontSize + 1) })}>
               <Plus className="h-3.5 w-3.5" />
             </ToolbarIconButton>
           </div>
 
           <ToolbarDivider />
 
-          <ToolbarIconButton active={format.bold} title="Bold (Ctrl+B)" onClick={() => onChange({ bold: !format.bold })}>
+          <ToolbarIconButton active={format.bold} title={tb.bold} onClick={() => onChange({ bold: !format.bold })}>
             <Bold className="h-4 w-4" />
           </ToolbarIconButton>
-          <ToolbarIconButton active={format.italic} title="Italic (Ctrl+I)" onClick={() => onChange({ italic: !format.italic })}>
+          <ToolbarIconButton active={format.italic} title={tb.italic} onClick={() => onChange({ italic: !format.italic })}>
             <Italic className="h-4 w-4" />
           </ToolbarIconButton>
 
@@ -115,7 +118,7 @@ export default function TextToolbar({
             colors={TEXT_COLORS}
             value={format.color}
             onChange={(color) => color && onChange({ color })}
-            title="Text color"
+            title={tb.textColor}
           />
 
           <ToolbarDivider />

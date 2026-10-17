@@ -13,12 +13,16 @@ import {
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
+import { useI18n } from "@/i18n/client";
+import { format } from "@/i18n/config";
 
 type Tab = "lock" | "unlock";
 
 const MIN_PASSWORD_LENGTH = 6;
 
 export default function PdfProtect() {
+  const { t } = useI18n();
+  const tt = t.protect;
   const [tab, setTab] = useState<Tab>("lock");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<PdfStatus | null>(null);
@@ -89,11 +93,11 @@ export default function PdfProtect() {
       setPassword("");
       setConfirm("");
     } catch (err) {
-      if (err instanceof WrongPasswordError) setError("Wrong password. Please try again.");
-      else if (err instanceof AlreadyProtectedError) setError("This PDF already has a password. Use the Unlock tab first.");
+      if (err instanceof WrongPasswordError) setError(tt.wrongPassword);
+      else if (err instanceof AlreadyProtectedError) setError(tt.alreadyProtectedError);
       else {
         console.error("Protect error:", err);
-        setError(tab === "lock" ? "Failed to lock the PDF." : "Failed to unlock the PDF.");
+        setError(tab === "lock" ? tt.lockFailed : tt.unlockFailed);
       }
     } finally {
       setIsWorking(false);
@@ -106,9 +110,9 @@ export default function PdfProtect() {
     <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6 overflow-auto">
       <div className="mx-auto w-full max-w-2xl">
         <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Protect PDF</h1>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{tt.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
-            Lock a PDF with a password, or remove the password from one you own.
+            {tt.subtitle}
           </p>
           <PrivacyNote />
         </header>
@@ -126,7 +130,7 @@ export default function PdfProtect() {
               }`}
             >
               {value === "lock" ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
-              {value === "lock" ? "Lock" : "Unlock"}
+              {value === "lock" ? tt.lock : tt.unlock}
             </button>
           ))}
         </div>
@@ -143,14 +147,14 @@ export default function PdfProtect() {
               <div className="rounded-full bg-blue-50 p-8 shadow-inner dark:bg-blue-900/20 mb-6 transition-transform group-hover:scale-110">
                 {tab === "lock" ? <Lock className="h-12 w-12 text-blue-600" /> : <LockOpen className="h-12 w-12 text-blue-600" />}
               </div>
-              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">Drop PDF here</h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-2">or click to browse from your device</p>
+              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">{t.common.dropPdf}</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-2">{t.common.dropBrowse}</p>
               <input type="file" accept="application/pdf" className="hidden" onChange={(e) => {
                   handleFile(e.target.files?.[0]);
                   e.target.value = "";
                 }} />
               <div className="mt-8 rounded-2xl bg-blue-600 px-10 py-3.5 text-lg font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all">
-                Select File
+                {t.common.selectFile}
               </div>
             </label>
           </div>
@@ -163,41 +167,39 @@ export default function PdfProtect() {
                   <p className="truncate font-bold text-slate-800 dark:text-slate-100" title={file.name}>{file.name}</p>
                   <p className="text-xs text-slate-500">
                     {formatSize(file.size)}
-                    {status === "password" && " · password-protected"}
+                    {status === "password" && tt.passwordProtectedTag}
                   </p>
                 </div>
               </div>
               <button onClick={removeFile} className="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl">
-                Remove
+                {t.common.remove}
               </button>
             </div>
 
-            {status === "invalid" && <Notice tone="error">This file could not be read as a PDF.</Notice>}
+            {status === "invalid" && <Notice tone="error">{tt.invalid}</Notice>}
             {status === "open" && tab === "unlock" && (
-              <Notice tone="info">This PDF is not password-protected, so there is nothing to unlock.</Notice>
+              <Notice tone="info">{tt.notProtected}</Notice>
             )}
             {status === "password" && tab === "lock" && (
-              <Notice tone="info">This PDF already has a password. Use the Unlock tab to remove it first.</Notice>
+              <Notice tone="info">{tt.alreadyProtected}</Notice>
             )}
 
             {result ? (
               <div className="space-y-4 rounded-3xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-6 text-center dark:border-emerald-800 dark:bg-emerald-900/20">
                 <h3 className="text-xl font-bold text-emerald-600">
-                  {result.kind === "lock" ? "PDF locked" : "PDF unlocked"}
+                  {result.kind === "lock" ? tt.lockedTitle : tt.unlockedTitle}
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {result.kind === "lock"
-                    ? "Open it in your PDF viewer to confirm the password works before sharing. We cannot recover a lost password."
-                    : "The password has been removed from this copy."}
+                  {result.kind === "lock" ? tt.lockedBody : tt.unlockedBody}
                 </p>
                 <button
                   onClick={() =>
-                    downloadBlob(result.blob, `${result.kind === "lock" ? "locked" : "unlocked"}_${baseName}.pdf`)
+                    downloadBlob(result.blob, `${result.kind === "lock" ? tt.lockedPrefix : tt.unlockedPrefix}_${baseName}.pdf`)
                   }
                   className="mx-auto flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-8 py-3 font-bold text-white hover:bg-blue-700"
                 >
                   <Download className="h-5 w-5" />
-                  Download
+                  {t.common.download}
                 </button>
               </div>
             ) : (
@@ -210,7 +212,7 @@ export default function PdfProtect() {
               >
                 <div className="space-y-2">
                   <label htmlFor="pw" className="block text-sm font-bold text-slate-700 dark:text-slate-200">
-                    {tab === "lock" ? "New password" : "Password"}
+                    {tab === "lock" ? tt.newPassword : tt.password}
                   </label>
                   <input
                     id="pw"
@@ -221,14 +223,14 @@ export default function PdfProtect() {
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
                   {passwordTooShort && (
-                    <p className="text-xs text-red-500">Use at least {MIN_PASSWORD_LENGTH} characters.</p>
+                    <p className="text-xs text-red-500">{format(tt.tooShort, { min: MIN_PASSWORD_LENGTH })}</p>
                   )}
                 </div>
 
                 {tab === "lock" && (
                   <div className="space-y-2">
                     <label htmlFor="pw2" className="block text-sm font-bold text-slate-700 dark:text-slate-200">
-                      Confirm password
+                      {tt.confirmPassword}
                     </label>
                     <input
                       id="pw2"
@@ -238,22 +240,22 @@ export default function PdfProtect() {
                       onChange={(e) => setConfirm(e.target.value)}
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                     />
-                    {mismatch && <p className="text-xs text-red-500">Passwords do not match.</p>}
+                    {mismatch && <p className="text-xs text-red-500">{tt.mismatch}</p>}
                   </div>
                 )}
 
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                   <input type="checkbox" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
-                  Show password
+                  {tt.showPassword}
                 </label>
 
                 {tab === "lock" && (
                   <fieldset className="space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-                    <legend className="text-sm font-bold text-slate-700 dark:text-slate-200">Allow people who open it to</legend>
+                    <legend className="text-sm font-bold text-slate-700 dark:text-slate-200">{tt.allowLegend}</legend>
                     {[
-                      { label: "Print", checked: allowPrinting, set: setAllowPrinting },
-                      { label: "Copy text and images", checked: allowCopying, set: setAllowCopying },
-                      { label: "Edit and annotate", checked: allowModifying, set: setAllowModifying },
+                      { label: tt.allowPrint, checked: allowPrinting, set: setAllowPrinting },
+                      { label: tt.allowCopy, checked: allowCopying, set: setAllowCopying },
+                      { label: tt.allowEdit, checked: allowModifying, set: setAllowModifying },
                     ].map(({ label, checked, set }) => (
                       <label key={label} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                         <input type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)} />
@@ -261,14 +263,14 @@ export default function PdfProtect() {
                       </label>
                     ))}
                     <p className="text-xs text-slate-500">
-                      Restrictions are honored by standard PDF viewers but are not a strong protection. The password is.
+                      {tt.restrictionsNote}
                     </p>
                   </fieldset>
                 )}
 
                 {tab === "lock" && (
                   <Notice tone="warn">
-                    If you forget this password, the PDF cannot be recovered. Nothing is stored or sent anywhere.
+                    {tt.forgetWarning}
                   </Notice>
                 )}
 
@@ -279,7 +281,7 @@ export default function PdfProtect() {
                   disabled={isWorking || blocked}
                   className="w-full rounded-2xl bg-blue-600 py-3.5 text-lg font-bold text-white shadow-xl shadow-blue-600/20 transition-all hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isWorking ? "Working..." : tab === "lock" ? "Lock PDF" : "Unlock PDF"}
+                  {isWorking ? t.common.working : tab === "lock" ? tt.lockButton : tt.unlockButton}
                 </button>
               </form>
             )}

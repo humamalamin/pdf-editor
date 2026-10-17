@@ -3,6 +3,7 @@
 import React from "react";
 import { Ban, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/client";
 
 // Building blocks for the small toolbars that float above a selected annotation.
 
@@ -40,6 +41,7 @@ export function ToolbarIconButton({
     <button
       type="button"
       title={title}
+      aria-label={title}
       aria-pressed={active}
       onClick={onClick}
       className={cn(
@@ -59,7 +61,7 @@ export function ColorSwatches({
   value,
   onChange,
   allowNone,
-  title = "Color",
+  title,
 }: {
   colors: readonly string[];
   value: string | null;
@@ -67,13 +69,15 @@ export function ColorSwatches({
   allowNone?: boolean;
   title?: string;
 }) {
+  const { t } = useI18n();
   const current = value?.toLowerCase() ?? null;
   return (
-    <div className="flex items-center gap-0.5" title={title}>
+    <div className="flex items-center gap-0.5" title={title ?? t.toolbar.color}>
       {allowNone && (
         <button
           type="button"
-          title="None"
+          title={t.toolbar.none}
+          aria-label={t.toolbar.none}
           onClick={() => onChange(null)}
           className={cn(
             "flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400",
@@ -97,7 +101,7 @@ export function ColorSwatches({
         />
       ))}
       <label
-        title="Custom color"
+        title={t.toolbar.customColor}
         className={cn(
           "relative ml-0.5 h-4 w-4 cursor-pointer overflow-hidden rounded-full border border-slate-300",
           current !== null && !colors.includes(current) && "ring-2 ring-blue-500 ring-offset-1"
@@ -116,11 +120,13 @@ export function ColorSwatches({
 }
 
 export function ToolbarDeleteButton({ onDelete }: { onDelete: () => void }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
       onClick={onDelete}
-      title="Delete (Del)"
+      title={t.toolbar.delete}
+      aria-label={t.toolbar.delete}
       className="flex h-7 w-7 items-center justify-center rounded-md text-red-500 hover:bg-red-50"
     >
       <Trash2 className="h-4 w-4" />

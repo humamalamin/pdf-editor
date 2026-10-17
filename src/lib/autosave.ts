@@ -79,10 +79,9 @@ export const clearSession = () =>
     store.delete(STATE_KEY);
   }).catch(() => undefined);
 
-const relativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-
-/** "5 minutes ago", "yesterday", … */
-export function timeAgo(epochMs: number) {
+/** "5 minutes ago", "yesterday", … in the given language; `justNow` covers anything under a minute. */
+export function timeAgo(epochMs: number, locale: string, justNow: string) {
+  const relativeTime = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   const seconds = Math.round((epochMs - Date.now()) / 1000);
   const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ["day", 86400],
@@ -92,5 +91,5 @@ export function timeAgo(epochMs: number) {
   for (const [unit, size] of units) {
     if (Math.abs(seconds) >= size) return relativeTime.format(Math.round(seconds / size), unit);
   }
-  return "just now";
+  return justNow;
 }

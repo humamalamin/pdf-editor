@@ -16,6 +16,7 @@ This application allows anyone to securely open, view, annotate, and sign PDF do
 - ✍️ **Image Signatures**: Easily upload and position PNG/JPG signatures directly onto specific documents.
 - 🚀 **1-Click Export**: Bake elements precisely onto original PDF vectors and download instantly.
 - 🖼️ **PDF to JPG/PNG**: Export selected pages as images at 72, 150, or 300 DPI (several pages download as a ZIP).
+- 🌐 **English and Bahasa Indonesia**: Every tool is available in both languages (Indonesian under `/id`, e.g. `/id/kompres-pdf`), with hreflang links and a language switcher.
 - 📷 **JPG to PDF**: Combine JPG, PNG, WebP, GIF, or BMP images into one PDF, with reorder, rotate, page size, and margin options.
 
 ## 🛠️ Tech Stack

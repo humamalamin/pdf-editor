@@ -8,6 +8,7 @@ import "@fontsource/sacramento/400.css";
 import "@fontsource/caveat/400.css";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
+import { useI18n } from "@/i18n/client";
 import {
   SIGNATURE_COLORS,
   SIGNATURE_FONTS,
@@ -63,6 +64,7 @@ function DrawPad({
   setStrokes: React.Dispatch<React.SetStateAction<Stroke[]>>;
   color: string;
 }) {
+  const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const activeStroke = useRef<Stroke | null>(null);
   const [width, setWidth] = useState(0);
@@ -123,7 +125,7 @@ function DrawPad({
       <div className="pointer-events-none absolute inset-x-8 bottom-12 border-b border-dashed border-slate-300" />
       {strokes.length === 0 && (
         <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-slate-400">
-          Draw your signature here
+          {t.signature.drawHere}
         </p>
       )}
     </div>
@@ -154,6 +156,8 @@ export default function SignatureDialog({
   onClose: () => void;
   onInsert: (dataUrl: string) => void;
 }) {
+  const { t } = useI18n();
+  const ts = t.signature;
   const [tab, setTab] = useState<Tab>("draw");
   const [color, setColor] = useState<string>(SIGNATURE_COLORS[0]);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
@@ -236,9 +240,9 @@ export default function SignatureDialog({
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "draw", label: "Draw", icon: <PenLine className="h-4 w-4" /> },
-    { id: "type", label: "Type", icon: <Type className="h-4 w-4" /> },
-    { id: "upload", label: "Upload", icon: <ImageUp className="h-4 w-4" /> },
+    { id: "draw", label: ts.draw, icon: <PenLine className="h-4 w-4" /> },
+    { id: "type", label: ts.type, icon: <Type className="h-4 w-4" /> },
+    { id: "upload", label: ts.upload, icon: <ImageUp className="h-4 w-4" /> },
   ];
 
   return (
@@ -256,12 +260,13 @@ export default function SignatureDialog({
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
           <h2 id="signature-dialog-title" className="text-lg font-semibold text-slate-800 dark:text-white">
-            Add signature
+            {ts.title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            title="Close (Esc)"
+            title={ts.close}
+            aria-label={ts.close}
             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X className="h-5 w-5" />
@@ -272,7 +277,7 @@ export default function SignatureDialog({
           {saved.length > 0 && (
             <section className="mb-5">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Saved on this device
+                {ts.savedHeading}
               </h3>
               <div className="grid grid-cols-3 gap-2">
                 {saved.map((sig) => (
@@ -280,16 +285,17 @@ export default function SignatureDialog({
                     <button
                       type="button"
                       onClick={() => onInsert(sig)}
-                      title="Insert this signature"
+                      title={ts.insertSaved}
                       className="flex h-16 w-full items-center justify-center rounded-lg border border-slate-200 bg-white p-2 hover:border-blue-400 hover:ring-2 hover:ring-blue-500/20 dark:border-slate-700"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={sig} alt="Saved signature" className="max-h-full max-w-full object-contain" />
+                      <img src={sig} alt={ts.savedAlt} className="max-h-full max-w-full object-contain" />
                     </button>
                     <button
                       type="button"
                       onClick={() => setSaved(removeSavedSignature(sig))}
-                      title="Remove from saved"
+                      title={ts.removeSaved}
+                      aria-label={ts.removeSaved}
                       className="absolute -right-1.5 -top-1.5 rounded-full border border-slate-200 bg-white p-0.5 text-slate-500 shadow-sm hover:text-red-500 dark:border-slate-600 dark:bg-slate-800"
                     >
                       <X className="h-3 w-3" />
@@ -301,20 +307,20 @@ export default function SignatureDialog({
           )}
 
           <div className="mb-4 flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-            {tabs.map((t) => (
+            {tabs.map((item) => (
               <button
-                key={t.id}
+                key={item.id}
                 type="button"
-                onClick={() => setTab(t.id)}
+                onClick={() => setTab(item.id)}
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-colors",
-                  tab === t.id
+                  tab === item.id
                     ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
-                {t.icon}
-                {t.label}
+                {item.icon}
+                {item.label}
               </button>
             ))}
           </div>
@@ -333,7 +339,7 @@ export default function SignatureDialog({
                     disabled={strokes.length === 0}
                     className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
-                    <Undo2 className="h-4 w-4" /> Undo
+                    <Undo2 className="h-4 w-4" /> {ts.undo}
                   </button>
                   <button
                     type="button"
@@ -341,7 +347,7 @@ export default function SignatureDialog({
                     disabled={strokes.length === 0}
                     className="rounded-lg px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
-                    Clear
+                    {ts.clear}
                   </button>
                 </div>
               </div>
@@ -357,7 +363,7 @@ export default function SignatureDialog({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && canInsert) handleInsert();
                 }}
-                placeholder="Type your name"
+                placeholder={ts.typePlaceholder}
                 maxLength={60}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
@@ -379,7 +385,7 @@ export default function SignatureDialog({
                       className="truncate text-3xl"
                       style={{ fontFamily: `"${f.family}"`, color }}
                     >
-                      {typedName.trim() || "Your name"}
+                      {typedName.trim() || ts.namePreview}
                     </span>
                   </button>
                 ))}
@@ -409,14 +415,14 @@ export default function SignatureDialog({
               >
                 {uploadPreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={uploadPreview} alt="Signature preview" className="max-h-full max-w-full object-contain" />
+                  <img src={uploadPreview} alt={ts.previewAlt} className="max-h-full max-w-full object-contain" />
                 ) : (
                   <>
                     <ImageUp className="mb-2 h-8 w-8 text-slate-400" />
                     <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                      Click or drop an image of your signature
+                      {ts.uploadPrompt}
                     </span>
-                    <span className="mt-1 text-xs text-slate-400">PNG or JPG</span>
+                    <span className="mt-1 text-xs text-slate-400">{ts.uploadFormats}</span>
                   </>
                 )}
                 <input
@@ -436,7 +442,7 @@ export default function SignatureDialog({
                   onChange={(e) => setRemoveBackground(e.target.checked)}
                   className="h-4 w-4 rounded accent-blue-600"
                 />
-                Remove white background
+                {ts.removeBackground}
               </label>
             </div>
           )}
@@ -450,7 +456,7 @@ export default function SignatureDialog({
               onChange={(e) => setSaveForLater(e.target.checked)}
               className="h-4 w-4 rounded accent-blue-600"
             />
-            Save on this device
+            {ts.saveOnDevice}
           </label>
           <div className="flex gap-2">
             <button
@@ -458,7 +464,7 @@ export default function SignatureDialog({
               onClick={onClose}
               className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >
-              Cancel
+              {t.common.cancel}
             </button>
             <button
               type="button"
@@ -466,7 +472,7 @@ export default function SignatureDialog({
               disabled={!canInsert || isWorking}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-40"
             >
-              Insert
+              {ts.insert}
             </button>
           </div>
         </div>

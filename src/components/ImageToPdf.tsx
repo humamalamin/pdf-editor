@@ -11,28 +11,31 @@ import {
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
+import { useI18n } from "@/i18n/client";
+import { format, plural } from "@/i18n/config";
 
 type Item = { id: string; file: File; url: string; rotation: number };
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/bmp";
 
-const PAGE_SIZES: { value: PageSizeOption; label: string }[] = [
-  { value: "fit", label: "Same as image" },
-  { value: "a4", label: "A4" },
-  { value: "letter", label: "Letter" },
-];
-const ORIENTATIONS: { value: OrientationOption; label: string }[] = [
-  { value: "auto", label: "Auto" },
-  { value: "portrait", label: "Portrait" },
-  { value: "landscape", label: "Landscape" },
-];
-const MARGINS: { value: MarginOption; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "small", label: "Small" },
-  { value: "large", label: "Large" },
-];
-
 export default function ImageToPdf() {
+  const { t } = useI18n();
+  const tt = t.imageToPdf;
+  const pageSizes: { value: PageSizeOption; label: string }[] = [
+    { value: "fit", label: tt.sameAsImage },
+    { value: "a4", label: "A4" },
+    { value: "letter", label: "Letter" },
+  ];
+  const orientations: { value: OrientationOption; label: string }[] = [
+    { value: "auto", label: tt.auto },
+    { value: "portrait", label: tt.portrait },
+    { value: "landscape", label: tt.landscape },
+  ];
+  const margins: { value: MarginOption; label: string }[] = [
+    { value: "none", label: tt.none },
+    { value: "small", label: tt.small },
+    { value: "large", label: tt.large },
+  ];
   const [items, setItems] = useState<Item[]>([]);
   const [pageSize, setPageSize] = useState<PageSizeOption>("a4");
   const [orientation, setOrientation] = useState<OrientationOption>("auto");
@@ -49,7 +52,7 @@ export default function ImageToPdf() {
 
   const addFiles = (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith("image/"));
-    setError(images.length < files.length ? "Some files were skipped because they are not images." : "");
+    setError(images.length < files.length ? tt.skipped : "");
     if (images.length === 0) return;
     setItems((prev) => [
       ...prev,
@@ -103,11 +106,11 @@ export default function ImageToPdf() {
         margin,
         onProgress: (done, total) => setProgress({ done, total }),
       });
-      const name = items.length === 1 ? items[0].file.name.replace(/\.[^/.]+$/, "") : "images";
+      const name = items.length === 1 ? items[0].file.name.replace(/\.[^/.]+$/, "") : tt.fileName;
       downloadBlob(new Blob([bytes as unknown as BlobPart], { type: "application/pdf" }), `${name}.pdf`);
     } catch (err) {
       console.error("Image to PDF error:", err);
-      setError("Failed to create the PDF. One of the images may be in an unsupported format (such as HEIC).");
+      setError(tt.failed);
     } finally {
       setProgress(null);
     }
@@ -137,16 +140,16 @@ export default function ImageToPdf() {
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">JPG to PDF</h1>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{tt.title}</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Combine photos and images into one PDF, one image per page.
+              {tt.subtitle}
             </p>
             <PrivacyNote />
           </div>
           {items.length > 0 && (
             <label className="flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-all hover:-translate-y-0.5 hover:bg-blue-700">
               <ImagePlus className="h-4 w-4" />
-              Add images
+              {tt.addImages}
               {fileInput}
             </label>
           )}
@@ -163,13 +166,13 @@ export default function ImageToPdf() {
               <div className="mb-6 rounded-full bg-white p-6 shadow-xl transition-transform group-hover:scale-110 dark:bg-slate-800">
                 <Images className="h-10 w-10 text-blue-500" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Select images</h3>
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">{tt.emptyTitle}</h3>
               <p className="mt-2 max-w-sm text-center text-slate-500 dark:text-slate-400">
-                JPG, PNG, WebP, GIF, or BMP. You can reorder and rotate them before converting.
+                {tt.emptyText}
               </p>
               {fileInput}
               <div className="mt-8 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-700">
-                Choose Images
+                {tt.chooseImages}
               </div>
             </label>
             {error && <p className="mt-6 text-sm text-red-500">{error}</p>}
@@ -177,23 +180,23 @@ export default function ImageToPdf() {
         ) : (
           <div className="space-y-6">
             <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3 dark:border-slate-800 dark:bg-slate-900">
-              <OptionGroup label="Page size" options={PAGE_SIZES} value={pageSize} onChange={setPageSize} />
+              <OptionGroup label={tt.pageSize} options={pageSizes} value={pageSize} onChange={setPageSize} />
               <OptionGroup
-                label="Orientation"
-                options={ORIENTATIONS}
+                label={tt.orientation}
+                options={orientations}
                 value={orientation}
                 onChange={setOrientation}
                 disabled={pageSize === "fit"}
               />
-              <OptionGroup label="Margin" options={MARGINS} value={margin} onChange={setMargin} />
+              <OptionGroup label={tt.margin} options={margins} value={margin} onChange={setMargin} />
             </div>
 
             <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
               <span>
-                {items.length} image{items.length > 1 ? "s" : ""} · {formatSize(items.reduce((s, i) => s + i.file.size, 0))}
+                {plural(items.length, tt.imageCountOne, tt.imageCountOther)} · {formatSize(items.reduce((s, i) => s + i.file.size, 0))}
               </span>
               <button onClick={clearAll} className="font-medium text-red-500 hover:text-red-600">
-                Remove all
+                {t.common.removeAll}
               </button>
             </div>
 
@@ -218,19 +221,19 @@ export default function ImageToPdf() {
                     <span className="mr-auto rounded-md bg-slate-800/80 px-2 py-0.5 text-[10px] font-bold text-white">
                       {index + 1}
                     </span>
-                    <IconButton label="Move left" onClick={() => moveItem(index, -1)} disabled={index === 0}>
+                    <IconButton label={t.common.moveLeft} onClick={() => moveItem(index, -1)} disabled={index === 0}>
                       <ArrowLeft className="h-4 w-4" />
                     </IconButton>
-                    <IconButton label="Move right" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1}>
+                    <IconButton label={t.common.moveRight} onClick={() => moveItem(index, 1)} disabled={index === items.length - 1}>
                       <ArrowRight className="h-4 w-4" />
                     </IconButton>
-                    <IconButton label="Rotate" onClick={() => rotateItem(item.id)}>
+                    <IconButton label={t.common.rotate} onClick={() => rotateItem(item.id)}>
                       <RotateCw className="h-4 w-4" />
                     </IconButton>
                   </div>
                   <button
                     onClick={() => removeItem(item.id)}
-                    aria-label={`Remove ${item.file.name}`}
+                    aria-label={format(tt.removeImage, { name: item.file.name })}
                     className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-500 shadow-sm transition-all hover:bg-red-500 hover:text-white sm:opacity-0 sm:group-hover:opacity-100 dark:bg-red-900/50"
                   >
                     <X className="h-3 w-3" />
@@ -252,11 +255,11 @@ export default function ImageToPdf() {
                 className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-blue-600 px-8 py-4 text-lg font-bold text-white shadow-2xl shadow-blue-600/30 transition-all hover:-translate-y-1 hover:bg-blue-700 disabled:translate-y-0 disabled:opacity-70 disabled:shadow-none"
               >
                 {progress ? (
-                  <>Adding image {Math.min(progress.done + 1, progress.total)} of {progress.total}...</>
+                  <>{format(tt.adding, { done: Math.min(progress.done + 1, progress.total), total: progress.total })}</>
                 ) : (
                   <>
                     <Download className="h-5 w-5" />
-                    Convert to PDF
+                    {tt.convert}
                   </>
                 )}
               </button>

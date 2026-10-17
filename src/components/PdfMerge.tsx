@@ -6,6 +6,8 @@ import { PDFDocument } from "pdf-lib";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
+import { useI18n } from "@/i18n/client";
+import { plural } from "@/i18n/config";
 
 type MergeFile = {
   id: string;
@@ -14,6 +16,7 @@ type MergeFile = {
 };
 
 export default function PdfMerge() {
+  const { t } = useI18n();
   const [files, setFiles] = useState<MergeFile[]>([]);
   const [isMerging, setIsMerging] = useState(false);
 
@@ -82,7 +85,7 @@ export default function PdfMerge() {
       setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (err) {
       console.error("Merge error:", err);
-      alert("Failed to merge PDFs. Please try again.");
+      alert(t.merge.failed);
     } finally {
       setIsMerging(false);
     }
@@ -99,13 +102,13 @@ export default function PdfMerge() {
       <div className="mx-auto w-full max-w-4xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Merge PDFs</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Combine multiple PDF files into one in the order you want.</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t.merge.title}</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t.merge.subtitle}</p>
             <PrivacyNote />
           </div>
           <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-700 hover:-translate-y-0.5">
             <Upload className="h-4 w-4" />
-            Add PDFs
+            {t.merge.addPdfs}
             <input
               type="file"
               accept="application/pdf"
@@ -129,9 +132,9 @@ export default function PdfMerge() {
             <div className="rounded-full bg-white p-6 shadow-xl dark:bg-slate-800 mb-6">
               <Combine className="h-10 w-10 text-blue-500" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">No files selected</h3>
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">{t.merge.emptyTitle}</h3>
             <p className="text-slate-500 dark:text-slate-400 mt-2 text-center max-w-sm">
-              Upload the PDF files you want to merge. You can reorder them before combining.
+              {t.merge.emptyText}
             </p>
           </div>
         ) : (
@@ -149,11 +152,12 @@ export default function PdfMerge() {
                     <p className="truncate text-sm font-semibold text-slate-700 dark:text-slate-200" title={f.file.name}>
                       {f.file.name}
                     </p>
-                    <p className="text-xs text-slate-500">{f.pageCount} pages</p>
+                    <p className="text-xs text-slate-500">{plural(f.pageCount, t.common.pageCountOne, t.common.pageCountOther)}</p>
                   </div>
                   <div className="flex flex-col gap-1">
                     <button
                       onClick={() => moveFile(index, "up")}
+                      aria-label={t.common.moveUp}
                       disabled={index === 0}
                       className="p-1 text-slate-400 hover:text-blue-500 disabled:opacity-20"
                     >
@@ -161,6 +165,7 @@ export default function PdfMerge() {
                     </button>
                     <button
                       onClick={() => moveFile(index, "down")}
+                      aria-label={t.common.moveDown}
                       disabled={index === files.length - 1}
                       className="p-1 text-slate-400 hover:text-blue-500 disabled:opacity-20"
                     >
@@ -169,6 +174,7 @@ export default function PdfMerge() {
                   </div>
                   <button
                     onClick={() => removeFile(f.id)}
+                    aria-label={t.common.remove}
                     className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-500 opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-red-500 hover:text-white dark:bg-red-900/50"
                   >
                     <X className="h-3 w-3" />
@@ -184,11 +190,11 @@ export default function PdfMerge() {
                 className="flex items-center gap-2 rounded-2xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:-translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none"
               >
                 {isMerging ? (
-                  <>Combining...</>
+                  <>{t.merge.combining}</>
                 ) : (
                   <>
                     <Download className="h-5 w-5" />
-                    Merge and Download
+                    {t.merge.mergeDownload}
                   </>
                 )}
               </button>

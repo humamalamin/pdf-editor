@@ -9,16 +9,20 @@ import { createZip } from "@/lib/zip";
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
+import { useI18n } from "@/i18n/client";
+import { format as fmt, plural } from "@/i18n/config";
 
 const THUMB_SCALE = 0.3;
 
 const RESOLUTIONS = [
-  { dpi: 72, label: "Low", hint: "72 DPI, smallest" },
-  { dpi: 150, label: "Medium", hint: "150 DPI, good for screens" },
-  { dpi: 300, label: "High", hint: "300 DPI, good for print" },
+  { dpi: 72, label: "low", hint: "lowHint" },
+  { dpi: 150, label: "medium", hint: "mediumHint" },
+  { dpi: 300, label: "high", hint: "highHint" },
 ] as const;
 
 export default function PdfToImage() {
+  const { t } = useI18n();
+  const tt = t.pdfToImage;
   const [file, setFile] = useState<File | null>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [thumbnails, setThumbnails] = useState<string[]>([]);
@@ -81,8 +85,8 @@ export default function PdfToImage() {
       setFile(null);
       setError(
         err instanceof Error && err.name === "PasswordException"
-          ? "This PDF is password-protected. Unlock it first with the Protect tool."
-          : "Could not open this PDF. It may be damaged.",
+          ? t.common.passwordProtected
+          : tt.openError,
       );
     }
   };
@@ -130,7 +134,7 @@ export default function PdfToImage() {
     } catch (err) {
       if (err instanceof ConvertCancelledError || controller.signal.aborted) return;
       console.error("Convert error:", err);
-      setError("Failed to convert the PDF. Try a lower resolution.");
+      setError(tt.failed);
     } finally {
       setProgress(null);
       abortRef.current = null;
@@ -144,15 +148,15 @@ export default function PdfToImage() {
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">PDF to JPG</h1>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{tt.title}</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Turn each PDF page into a JPG or PNG image.
+              {tt.subtitle}
             </p>
             <PrivacyNote />
           </div>
           {file && (
             <button onClick={reset} className="shrink-0 text-sm font-medium text-red-500 hover:text-red-600">
-              Cancel / Start Over
+              {t.common.startOver}
             </button>
           )}
         </header>
@@ -169,9 +173,9 @@ export default function PdfToImage() {
               <div className="mb-6 rounded-full bg-white p-6 shadow-xl transition-transform group-hover:scale-110 dark:bg-slate-800">
                 <FileImage className="h-10 w-10 text-pink-500" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Select a PDF to convert</h3>
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">{tt.emptyTitle}</h3>
               <p className="mt-2 max-w-sm text-center text-slate-500 dark:text-slate-400">
-                Pick the pages you need, then download them as images.
+                {tt.emptyText}
               </p>
               <input
                 type="file"
@@ -183,7 +187,7 @@ export default function PdfToImage() {
                 }}
               />
               <div className="mt-8 rounded-xl bg-pink-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/20 transition-all hover:bg-pink-600">
-                Choose File
+                {t.common.chooseFile}
               </div>
             </label>
             {error && <p className="mt-6 text-sm text-red-500">{error}</p>}
@@ -199,7 +203,7 @@ export default function PdfToImage() {
                   {file.name}
                 </span>
                 <span className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-500 dark:bg-slate-800">
-                  {formatSize(file.size)} · {totalPages} page{totalPages > 1 ? "s" : ""}
+                  {formatSize(file.size)} · {plural(totalPages, t.common.pageCountOne, t.common.pageCountOther)}
                 </span>
               </div>
               <div className="flex gap-2">
@@ -207,20 +211,20 @@ export default function PdfToImage() {
                   onClick={() => setSelected(Array.from({ length: totalPages }, (_, i) => i + 1))}
                   className="rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                 >
-                  Select All
+                  {t.common.selectAll}
                 </button>
                 <button
                   onClick={() => setSelected([])}
                   className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
-                  Clear
+                  {t.common.clear}
                 </button>
               </div>
             </div>
 
             <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3 dark:border-slate-800 dark:bg-slate-900">
               <fieldset>
-                <legend className="mb-2 text-sm font-bold text-slate-700 dark:text-slate-200">Format</legend>
+                <legend className="mb-2 text-sm font-bold text-slate-700 dark:text-slate-200">{tt.format}</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {(["jpg", "png"] as const).map((value) => (
                     <OptionButton key={value} active={format === value} onClick={() => setFormat(value)}>
@@ -230,11 +234,11 @@ export default function PdfToImage() {
                 </div>
               </fieldset>
               <fieldset>
-                <legend className="mb-2 text-sm font-bold text-slate-700 dark:text-slate-200">Resolution</legend>
+                <legend className="mb-2 text-sm font-bold text-slate-700 dark:text-slate-200">{tt.resolution}</legend>
                 <div className="grid grid-cols-3 gap-2">
                   {RESOLUTIONS.map((r) => (
-                    <OptionButton key={r.dpi} active={dpi === r.dpi} onClick={() => setDpi(r.dpi)} title={r.hint}>
-                      {r.label}
+                    <OptionButton key={r.dpi} active={dpi === r.dpi} onClick={() => setDpi(r.dpi)} title={tt[r.hint]}>
+                      {tt[r.label]}
                     </OptionButton>
                   ))}
                 </div>
@@ -242,7 +246,7 @@ export default function PdfToImage() {
               {format === "jpg" ? (
                 <label className="block">
                   <span className="flex justify-between text-sm font-bold text-slate-700 dark:text-slate-200">
-                    Quality
+                    {tt.quality}
                     <span className="font-medium text-slate-500">{quality}%</span>
                   </span>
                   <input
@@ -256,7 +260,7 @@ export default function PdfToImage() {
                 </label>
               ) : (
                 <p className="self-center text-xs text-slate-500 dark:text-slate-400">
-                  PNG is lossless and sharper for text, but the files are larger.
+                  {tt.pngNote}
                 </p>
               )}
             </div>
@@ -271,7 +275,7 @@ export default function PdfToImage() {
                     type="button"
                     onClick={() => togglePage(pageNumber)}
                     aria-pressed={isSelected}
-                    aria-label={`Page ${pageNumber}`}
+                    aria-label={fmt(t.common.page, { n: pageNumber })}
                     className={cn(
                       "relative aspect-[3/4] overflow-hidden rounded-xl border-2 transition-all",
                       isSelected
@@ -298,7 +302,7 @@ export default function PdfToImage() {
                         isSelected ? "bg-pink-500" : "bg-slate-800/80",
                       )}
                     >
-                      PAGE {pageNumber}
+                      {fmt(t.common.pageBadge, { n: pageNumber })}
                     </span>
                   </button>
                 );
@@ -315,13 +319,13 @@ export default function PdfToImage() {
               {progress ? (
                 <>
                   <div className="pointer-events-auto flex items-center gap-3 rounded-2xl bg-white px-6 py-4 font-semibold text-slate-700 shadow-2xl dark:bg-slate-800 dark:text-slate-200">
-                    Converting page {Math.min(progress.done + 1, progress.total)} of {progress.total}...
+                    {fmt(tt.converting, { done: Math.min(progress.done + 1, progress.total), total: progress.total })}
                   </div>
                   <button
                     onClick={() => abortRef.current?.abort()}
                     className="pointer-events-auto rounded-2xl bg-slate-200 px-5 py-4 font-semibold text-slate-700 shadow-2xl hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                 </>
               ) : (
@@ -332,8 +336,8 @@ export default function PdfToImage() {
                 >
                   <Download className="h-5 w-5" />
                   {selected.length === 1
-                    ? `Download ${formatLabel}`
-                    : `Download ${selected.length} ${formatLabel}s (ZIP)`}
+                    ? fmt(tt.downloadOne, { format: formatLabel })
+                    : fmt(tt.downloadMany, { count: selected.length, format: formatLabel })}
                 </button>
               )}
             </div>

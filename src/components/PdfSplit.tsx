@@ -7,8 +7,11 @@ import { pdfjsLib } from "@/lib/pdfjs";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
+import { useI18n } from "@/i18n/client";
+import { format, plural } from "@/i18n/config";
 
 export default function PdfSplit() {
+  const { t } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
@@ -105,7 +108,7 @@ export default function PdfSplit() {
       setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (err) {
       console.error("Split error:", err);
-      alert("Failed to split PDF. Please try again.");
+      alert(t.split.failed);
     } finally {
       setIsSplitting(false);
     }
@@ -125,8 +128,8 @@ export default function PdfSplit() {
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Split PDF</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Extract specific pages from your PDF file into a new document.</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t.split.title}</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t.split.subtitle}</p>
             <PrivacyNote />
           </div>
           {file && (
@@ -142,7 +145,7 @@ export default function PdfSplit() {
               }}
               className="text-sm font-medium text-red-500 hover:text-red-600"
             >
-              Cancel / Start Over
+              {t.common.startOver}
             </button>
           )}
         </header>
@@ -159,9 +162,9 @@ export default function PdfSplit() {
               <div className="rounded-full bg-white p-6 shadow-xl dark:bg-slate-800 mb-6 group-hover:scale-110 transition-transform">
                 <Scissors className="h-10 w-10 text-orange-500" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Select a PDF to split</h3>
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">{t.split.emptyTitle}</h3>
               <p className="text-slate-500 dark:text-slate-400 mt-2 text-center max-w-sm">
-                Upload a file to see its pages and select which ones you want to extract.
+                {t.split.emptyText}
               </p>
               <input
                 type="file"
@@ -170,7 +173,7 @@ export default function PdfSplit() {
                 onChange={(e) => handleFile(e.target.files?.[0])}
               />
               <div className="mt-8 rounded-xl bg-orange-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">
-                Choose File
+                {t.common.chooseFile}
               </div>
             </label>
           </div>
@@ -185,13 +188,13 @@ export default function PdfSplit() {
                   {file.name}
                 </span>
                 <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-slate-500">
-                  {totalPages} pages
+                  {plural(totalPages, t.common.pageCountOne, t.common.pageCountOther)}
                 </span>
               </div>
               
               <div className="flex gap-2">
-                <button onClick={selectAll} className="text-xs font-semibold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg">Select All</button>
-                <button onClick={clearSelection} className="text-xs font-semibold text-slate-500 hover:bg-slate-50 px-3 py-1.5 rounded-lg">Clear</button>
+                <button onClick={selectAll} className="text-xs font-semibold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg">{t.common.selectAll}</button>
+                <button onClick={clearSelection} className="text-xs font-semibold text-slate-500 hover:bg-slate-50 px-3 py-1.5 rounded-lg">{t.common.clear}</button>
               </div>
             </div>
 
@@ -208,7 +211,7 @@ export default function PdfSplit() {
                 >
                   {thumbnails[pageNum - 1] ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumbnails[pageNum - 1]} alt={`Page ${pageNum}`} className="h-full w-full object-cover" />
+                    <img src={thumbnails[pageNum - 1]} alt={format(t.common.page, { n: pageNum })} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-slate-50 dark:bg-slate-800">
                       <span className="text-slate-300 font-bold text-2xl">{pageNum}</span>
@@ -222,7 +225,7 @@ export default function PdfSplit() {
                   <div className={`absolute bottom-2 left-2 rounded-md px-2 py-0.5 text-[10px] font-bold ${
                     selectedPages.includes(pageNum) ? 'bg-orange-500 text-white' : 'bg-slate-800/80 text-white'
                   }`}>
-                    PAGE {pageNum}
+                    {format(t.common.pageBadge, { n: pageNum })}
                   </div>
                 </div>
               ))}
@@ -235,11 +238,11 @@ export default function PdfSplit() {
                 className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-orange-600 px-8 py-4 text-lg font-bold text-white shadow-2xl shadow-orange-600/30 transition-all hover:bg-orange-700 hover:-translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none"
               >
                 {isSplitting ? (
-                  <>Extracting...</>
+                  <>{t.split.extracting}</>
                 ) : (
                   <>
                     <Download className="h-5 w-5" />
-                    Extract {selectedPages.length} {selectedPages.length === 1 ? 'Page' : 'Pages'}
+                    {plural(selectedPages.length, t.split.extractOne, t.split.extractOther)}
                   </>
                 )}
               </button>

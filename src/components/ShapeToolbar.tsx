@@ -16,6 +16,8 @@ import {
   ToolbarIconButton,
   ToolbarShell,
 } from "@/components/FloatingToolbar";
+import { useI18n } from "@/i18n/client";
+import { format } from "@/i18n/config";
 
 export default function ShapeToolbar({
   kind,
@@ -28,6 +30,8 @@ export default function ShapeToolbar({
   onChange: (updates: Partial<ShapeStyle>) => void;
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
+  const tb = t.toolbar;
   const hasStroke = kind === "rect" || kind === "ellipse" || kind === "line" || kind === "check" || kind === "cross";
 
   return (
@@ -36,15 +40,15 @@ export default function ShapeToolbar({
         <>
           <span
             className="px-1 text-[11px] text-slate-500"
-            title="Whiteout only covers content visually: the original text is still inside the PDF and can be copied or extracted."
+            title={tb.coverHint}
           >
-            Cover
+            {tb.cover}
           </span>
           <ColorSwatches
             colors={FILL_COLORS}
             value={style.fill}
             onChange={(fill) => fill && onChange({ fill, stroke: fill })}
-            title="Cover color"
+            title={tb.coverColor}
           />
           <ToolbarDivider />
         </>
@@ -56,7 +60,7 @@ export default function ShapeToolbar({
             colors={HIGHLIGHT_COLORS}
             value={style.fill}
             onChange={(fill) => fill && onChange({ fill, stroke: fill })}
-            title="Highlight color"
+            title={tb.highlightColor}
           />
           <ToolbarDivider />
         </>
@@ -68,14 +72,14 @@ export default function ShapeToolbar({
             colors={STROKE_COLORS}
             value={style.stroke}
             onChange={(stroke) => stroke && onChange({ stroke })}
-            title="Line color"
+            title={tb.lineColor}
           />
           <ToolbarDivider />
           {STROKE_WIDTHS.map((w) => (
             <ToolbarIconButton
               key={w}
               active={style.strokeWidth === w}
-              title={`Thickness ${w} pt`}
+              title={format(tb.thickness, { width: w })}
               onClick={() => onChange({ strokeWidth: w })}
             >
               <span className="block w-4 rounded-full bg-current" style={{ height: Math.max(1, w * 0.8) }} />
@@ -87,13 +91,13 @@ export default function ShapeToolbar({
 
       {(kind === "rect" || kind === "ellipse") && (
         <>
-          <span className="px-1 text-[11px] text-slate-500">Fill</span>
+          <span className="px-1 text-[11px] text-slate-500">{tb.fill}</span>
           <ColorSwatches
             colors={FILL_COLORS}
             value={style.fill}
             onChange={(fill) => onChange({ fill })}
             allowNone
-            title="Fill color"
+            title={tb.fillColor}
           />
           <ToolbarDivider />
         </>

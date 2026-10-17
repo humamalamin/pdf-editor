@@ -9,9 +9,17 @@ export type CompressResult = {
   reachedTarget: boolean;
 };
 
+/** Progress events, turned into translated text by the UI. */
+export type CompressProgress =
+  | { stage: "render" }
+  | { stage: "compress" }
+  | { stage: "optimize" }
+  | { stage: "renderAt"; dpi: number }
+  | { stage: "tryQuality"; quality: number; dpi: number };
+
 type Options = {
   signal?: AbortSignal;
-  onProgress?: (message: string) => void;
+  onProgress?: (progress: CompressProgress) => void;
 };
 
 export type RenderedPage = {
@@ -130,10 +138,10 @@ export async function compressByLevel(
   }
 
   const { scale, quality } = LEVEL_SETTINGS[level];
-  onProgress?.("Rendering pages...");
+  onProgress?.({ stage: "render" });
   const pages = await renderPages(buffer, scale, signal);
   try {
-    onProgress?.("Compressing pages...");
+    onProgress?.({ stage: "compress" });
     return { bytes: await buildPdf(pages, quality, signal), reachedTarget: true };
   } finally {
     releasePages(pages);
@@ -150,7 +158,7 @@ export async function compressToTarget(
   targetBytes: number,
   { signal, onProgress }: Options = {},
 ): Promise<CompressResult> {
-  onProgress?.("Optimizing structure...");
+  onProgress?.({ stage: "optimize" });
   const basic = await saveBasic(buffer);
   if (basic.length <= targetBytes) {
     return { bytes: basic, reachedTarget: true };
@@ -162,15 +170,13 @@ export async function compressToTarget(
   };
 
   for (const scale of TARGET_SCALES) {
-    onProgress?.(`Rendering pages at ${Math.round(scale * 72)} DPI...`);
+    onProgress?.({ stage: "renderAt", dpi: Math.round(scale * 72) });
     const pages = await renderPages(buffer, scale, signal);
 
     try {
       const attempt = async (quality: number) => {
         throwIfCancelled(signal);
-        onProgress?.(
-          `Trying quality ${Math.round(quality * 100)}% at ${Math.round(scale * 72)} DPI...`,
-        );
+        onProgress?.({ stage: "tryQuality", quality: Math.round(quality * 100), dpi: Math.round(scale * 72) });
         const bytes = await buildPdf(pages, quality, signal);
         track(bytes);
         return bytes;

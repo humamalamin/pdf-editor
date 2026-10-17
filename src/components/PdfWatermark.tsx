@@ -15,6 +15,8 @@ import {
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
+import { useI18n } from "@/i18n/client";
+import { format, plural } from "@/i18n/config";
 
 const TEXT_PRESETS = ["COPY", "CONFIDENTIAL", "Hanya untuk keperluan "];
 const PREVIEW_WIDTH = 600;
@@ -22,6 +24,8 @@ const PREVIEW_WIDTH = 600;
 type PageInfo = { width: number; height: number; count: number };
 
 export default function PdfWatermark() {
+  const { t } = useI18n();
+  const tt = t.watermark;
   const [file, setFile] = useState<File | null>(null);
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
@@ -45,16 +49,16 @@ export default function PdfWatermark() {
 
   const trimmedText = text.trim();
   const textError = !trimmedText
-    ? "Enter the watermark text."
+    ? tt.enterText
     : isSupportedText(trimmedText)
       ? ""
-      : "Only Latin characters are supported (letters, numbers, common symbols).";
+      : tt.latinOnly;
 
   const pages = useMemo(() => {
     if (!pageRange.trim() || !pageInfo) return null;
     return parsePageRange(pageRange, pageInfo.count);
   }, [pageRange, pageInfo]);
-  const rangeError = pageRange.trim() && !pages ? `Use a format like 1-3, 5 (1 to ${pageInfo?.count ?? "?"}).` : "";
+  const rangeError = pageRange.trim() && !pages ? format(tt.rangeError, { max: pageInfo?.count ?? "?" }) : "";
 
   const options: WatermarkOptions = useMemo(
     () => ({
@@ -106,7 +110,7 @@ export default function PdfWatermark() {
     } catch (err) {
       console.error("Failed to open file:", err);
       setFile(null);
-      setError("Could not open this file. It may be damaged or password-protected.");
+      setError(tt.openError);
     }
   };
 
@@ -136,7 +140,7 @@ export default function PdfWatermark() {
       setResult(new Blob([bytes as unknown as BlobPart], { type: "application/pdf" }));
     } catch (err) {
       console.error("Watermark error:", err);
-      setError("Failed to add the watermark.");
+      setError(tt.failed);
     } finally {
       setIsWorking(false);
     }
@@ -155,9 +159,9 @@ export default function PdfWatermark() {
     <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6 overflow-auto">
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Watermark PDF</h1>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{tt.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
-            Stamp text like &quot;COPY&quot; across your document, handy before sending an ID copy.
+            {tt.subtitle}
           </p>
           <PrivacyNote />
         </header>
@@ -174,8 +178,8 @@ export default function PdfWatermark() {
               <div className="rounded-full bg-blue-50 p-8 shadow-inner dark:bg-blue-900/20 mb-6 transition-transform group-hover:scale-110">
                 <Stamp className="h-12 w-12 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">Drop a PDF or image here</h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-2">PDF, JPG, or PNG from your device</p>
+              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">{tt.dropTitle}</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-2">{tt.dropText}</p>
               <input
                 type="file"
                 accept="application/pdf,image/*"
@@ -186,7 +190,7 @@ export default function PdfWatermark() {
                 }}
               />
               <div className="mt-8 rounded-2xl bg-blue-600 px-10 py-3.5 text-lg font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all">
-                Select File
+                {t.common.selectFile}
               </div>
             </label>
             {error && <p className="mt-6 text-sm text-red-500">{error}</p>}
@@ -203,38 +207,38 @@ export default function PdfWatermark() {
                   <FileText className="h-6 w-6 flex-shrink-0 text-blue-600" />
                   <div className="min-w-0">
                     <p className="truncate font-bold text-slate-800 dark:text-slate-100" title={file.name}>{file.name}</p>
-                    <p className="text-xs text-slate-500">{formatSize(file.size)} · {pageInfo.count} page{pageInfo.count > 1 ? "s" : ""}</p>
+                    <p className="text-xs text-slate-500">{formatSize(file.size)} · {plural(pageInfo.count, t.common.pageCountOne, t.common.pageCountOther)}</p>
                   </div>
                 </div>
                 <button onClick={reset} className="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl">
-                  Remove
+                  {t.common.remove}
                 </button>
               </div>
 
               {result ? (
                 <div className="space-y-4 rounded-3xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-6 text-center dark:border-emerald-800 dark:bg-emerald-900/20">
-                  <h3 className="text-xl font-bold text-emerald-600">Watermark added</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">Result: {formatSize(result.size)}</p>
+                  <h3 className="text-xl font-bold text-emerald-600">{tt.done}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">{format(tt.resultSize, { size: formatSize(result.size) })}</p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setResult(null)}
                       className="flex-1 rounded-2xl bg-slate-100 py-3 font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
                     >
-                      Edit
+                      {t.common.edit}
                     </button>
                     <button
-                      onClick={() => downloadBlob(result, `watermarked_${file.name.replace(/\.[^/.]+$/, "")}.pdf`)}
+                      onClick={() => downloadBlob(result, `${tt.filePrefix}_${file.name.replace(/\.[^/.]+$/, "")}.pdf`)}
                       className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 font-bold text-white hover:bg-blue-700"
                     >
                       <Download className="h-5 w-5" />
-                      Download
+                      {t.common.download}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                   <div className="space-y-2">
-                    <label htmlFor="wm-text" className="block text-sm font-bold text-slate-700 dark:text-slate-200">Text</label>
+                    <label htmlFor="wm-text" className="block text-sm font-bold text-slate-700 dark:text-slate-200">{tt.text}</label>
                     <input
                       id="wm-text"
                       type="text"
@@ -270,29 +274,29 @@ export default function PdfWatermark() {
                             : "border-slate-100 text-slate-500 dark:border-slate-800"
                         }`}
                       >
-                        {value === "tile" ? "Repeat" : "Center"}
+                        {value === "tile" ? tt.repeat : tt.center}
                       </button>
                     ))}
                   </div>
 
-                  <Slider label="Size" value={size} min={12} max={120} unit="pt" onChange={setSize} />
-                  <Slider label="Opacity" value={opacity} min={5} max={100} unit="%" onChange={setOpacity} />
-                  <Slider label="Rotation" value={angle} min={0} max={90} unit="°" onChange={setAngle} />
+                  <Slider label={tt.size} value={size} min={12} max={120} unit="pt" onChange={setSize} />
+                  <Slider label={tt.opacity} value={opacity} min={5} max={100} unit="%" onChange={setOpacity} />
+                  <Slider label={tt.rotation} value={angle} min={0} max={90} unit="°" onChange={setAngle} />
 
                   <div className="flex items-center justify-between">
-                    <label htmlFor="wm-color" className="text-sm font-bold text-slate-700 dark:text-slate-200">Color</label>
+                    <label htmlFor="wm-color" className="text-sm font-bold text-slate-700 dark:text-slate-200">{tt.color}</label>
                     <input id="wm-color" type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-9 w-14 cursor-pointer rounded-lg border border-slate-200" />
                   </div>
 
                   {pageInfo.count > 1 && (
                     <div className="space-y-1">
                       <label htmlFor="wm-pages" className="block text-sm font-bold text-slate-700 dark:text-slate-200">
-                        Pages <span className="font-normal text-slate-400">(empty = all)</span>
+                        {tt.pages} <span className="font-normal text-slate-400">{tt.pagesHint}</span>
                       </label>
                       <input
                         id="wm-pages"
                         type="text"
-                        placeholder="e.g. 1-3, 5"
+                        placeholder={tt.pagesPlaceholder}
                         value={pageRange}
                         onChange={(e) => setPageRange(e.target.value)}
                         className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
@@ -304,9 +308,9 @@ export default function PdfWatermark() {
                   <label className="flex cursor-pointer items-start gap-3">
                     <input type="checkbox" checked={flatten} onChange={(e) => setFlatten(e.target.checked)} className="mt-1 h-4 w-4" />
                     <span className="text-sm">
-                      <b className="text-slate-700 dark:text-slate-200">Make watermark permanent</b>
+                      <b className="text-slate-700 dark:text-slate-200">{tt.permanent}</b>
                       <span className="block text-xs text-slate-500">
-                        Converts pages to images so the watermark cannot be removed. Text will no longer be selectable.
+                        {tt.permanentHint}
                       </span>
                     </span>
                   </label>
@@ -315,8 +319,8 @@ export default function PdfWatermark() {
                     <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/30 dark:bg-amber-900/10">
                       <Info className="h-4 w-4 flex-shrink-0 text-amber-600" />
                       <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
-                        Without this option the watermark is regular PDF text, and someone with a PDF editor can remove it.
-                        {isImage ? "" : " For sensitive documents like an ID card, turn it on."}
+                        {tt.removableWarning}
+                        {isImage ? "" : tt.sensitiveHint}
                       </p>
                     </div>
                   )}
@@ -332,7 +336,7 @@ export default function PdfWatermark() {
                     disabled={isWorking || !!textError || !!rangeError}
                     className="w-full rounded-2xl bg-blue-600 py-3.5 text-lg font-bold text-white shadow-xl shadow-blue-600/20 transition-all hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {isWorking ? "Working..." : "Add watermark"}
+                    {isWorking ? t.common.working : tt.addButton}
                   </button>
                 </div>
               )}

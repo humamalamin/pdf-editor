@@ -7,6 +7,8 @@ import { pdfjsLib } from "@/lib/pdfjs";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
+import { useI18n } from "@/i18n/client";
+import { format, plural } from "@/i18n/config";
 
 type PageState = {
   id: string;
@@ -16,6 +18,8 @@ type PageState = {
 };
 
 export default function PdfOrganizer() {
+  const { t } = useI18n();
+  const tt = t.organize;
   const [file, setFile] = useState<File | null>(null);
   const [pages, setPages] = useState<PageState[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -83,7 +87,7 @@ export default function PdfOrganizer() {
         setPages(loadedPages);
       } catch (err) {
         console.error("Load error:", err);
-        alert("Failed to load PDF.");
+        alert(tt.loadFailed);
       } finally {
         setIsProcessing(false);
         setLoadingProgress(0);
@@ -101,7 +105,7 @@ export default function PdfOrganizer() {
 
   const removePage = (id: string) => {
     if (pages.length <= 1) {
-      alert("PDF must have at least one page.");
+      alert(tt.minOnePage);
       return;
     }
     setPages(prev => {
@@ -159,7 +163,7 @@ export default function PdfOrganizer() {
       setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (err) {
       console.error("Save error:", err);
-      alert("Failed to save PDF.");
+      alert(tt.saveFailed);
     } finally {
       setIsProcessing(false);
     }
@@ -170,8 +174,8 @@ export default function PdfOrganizer() {
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Organize Pages</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Reorder, rotate, or remove pages from your PDF.</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{tt.title}</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{tt.subtitle}</p>
             <PrivacyNote />
           </div>
           {file && !isProcessing && (
@@ -185,7 +189,7 @@ export default function PdfOrganizer() {
                 }}
                 className="text-sm font-medium text-red-500 hover:text-red-600"
               >
-                Start Over
+                {tt.startOver}
               </button>
           )}
         </header>
@@ -202,9 +206,9 @@ export default function PdfOrganizer() {
               <div className="rounded-full bg-white p-6 shadow-xl dark:bg-slate-800 mb-6 transition-transform hover:scale-110">
                 <Layout className="h-10 w-10 text-purple-500" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Upload PDF to Organize</h3>
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">{tt.emptyTitle}</h3>
               <p className="text-slate-500 dark:text-slate-400 mt-2 text-center max-w-sm">
-                Rearrange pages exactly how you want them.
+                {tt.emptyText}
               </p>
               <input
                 type="file"
@@ -213,7 +217,7 @@ export default function PdfOrganizer() {
                 onChange={(e) => handleFile(e.target.files?.[0])}
               />
               <div className="mt-8 rounded-xl bg-purple-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-600/20 hover:bg-purple-700 transition-all">
-                Choose File
+                {t.common.chooseFile}
               </div>
             </label>
           </div>
@@ -222,7 +226,7 @@ export default function PdfOrganizer() {
              <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden mb-4">
                 <div className="h-full bg-purple-500 transition-all duration-300" style={{ width: `${loadingProgress}%` }}></div>
              </div>
-             <p className="text-slate-500 text-sm font-medium">Loading pages... {loadingProgress}%</p>
+             <p className="text-slate-500 text-sm font-medium">{format(tt.loading, { percent: loadingProgress })}</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -235,7 +239,7 @@ export default function PdfOrganizer() {
                   {file.name}
                 </span>
                 <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-slate-500">
-                  {pages.length} pages
+                  {plural(pages.length, t.common.pageCountOne, t.common.pageCountOther)}
                 </span>
               </div>
             </div>
@@ -250,7 +254,7 @@ export default function PdfOrganizer() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={page.thumbnail} 
-                      alt={`Page ${index + 1}`} 
+                      alt={format(t.common.page, { n: index + 1 })} 
                       className="h-full w-full object-cover transition-transform duration-300"
                       style={{ transform: `rotate(${page.rotation}deg)` }}
                     />
@@ -260,14 +264,16 @@ export default function PdfOrganizer() {
                        <button 
                         onClick={() => rotatePage(page.id)}
                         className="p-2 bg-white rounded-full text-slate-800 hover:bg-purple-500 hover:text-white transition-colors"
-                        title="Rotate 90°"
+                        title={tt.rotate}
+                        aria-label={tt.rotate}
                        >
                          <RotateCw className="h-4 w-4" />
                        </button>
                        <button 
                         onClick={() => removePage(page.id)}
                         className="p-2 bg-white rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-colors"
-                        title="Delete Page"
+                        title={tt.deletePage}
+                        aria-label={tt.deletePage}
                        >
                          <Trash2 className="h-4 w-4" />
                        </button>
@@ -282,14 +288,16 @@ export default function PdfOrganizer() {
                   <div className="flex items-center justify-between px-1">
                     <button 
                       onClick={() => movePage(index, "left")}
+                      aria-label={t.common.moveLeft}
                       disabled={index === 0}
                       className="p-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-400 hover:text-purple-500 disabled:opacity-20 shadow-sm border border-slate-100 dark:border-slate-700"
                     >
                       <ArrowLeft className="h-4 w-4" />
                     </button>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Move</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{tt.move}</span>
                     <button 
                       onClick={() => movePage(index, "right")}
+                      aria-label={t.common.moveRight}
                       disabled={index === pages.length - 1}
                       className="p-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-400 hover:text-purple-500 disabled:opacity-20 shadow-sm border border-slate-100 dark:border-slate-700"
                     >
@@ -307,11 +315,11 @@ export default function PdfOrganizer() {
                 className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-purple-600 px-8 py-4 text-lg font-bold text-white shadow-2xl shadow-purple-600/30 transition-all hover:bg-purple-700 hover:-translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none"
               >
                 {isProcessing ? (
-                  <>Processing...</>
+                  <>{tt.processing}</>
                 ) : (
                   <>
                     <Download className="h-5 w-5" />
-                    Save Changes
+                    {tt.save}
                   </>
                 )}
               </button>

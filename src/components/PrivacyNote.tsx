@@ -1,7 +1,11 @@
+"use client";
+
 import { ShieldCheck } from "lucide-react";
+import { useI18n } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 export default function PrivacyNote({ className }: Readonly<{ className?: string }>) {
+  const { t } = useI18n();
   return (
     <p
       className={cn(
@@ -10,7 +14,7 @@ export default function PrivacyNote({ className }: Readonly<{ className?: string
       )}
     >
       <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      Files are never uploaded. Everything is processed on your device.
+      {t.privacy.note}
     </p>
   );
 }

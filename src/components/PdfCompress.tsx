@@ -18,25 +18,47 @@ import {
   getPageCount,
   LARGE_PDF_PAGES,
   type CompressionLevel,
+  type CompressProgress,
 } from "@/lib/compress";
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
 import PrivacyNote from "@/components/PrivacyNote";
+import { useI18n } from "@/i18n/client";
+import { format } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries/en";
 
 type Mode = CompressionLevel | "target";
 type Unit = "KB" | "MB";
 
+type CompressText = Dictionary["compress"];
+
 const OPTIONS: {
   mode: Mode;
-  label: string;
-  hint: string;
+  label: keyof CompressText;
+  hint: keyof CompressText;
   Icon: typeof Zap;
 }[] = [
-  { mode: "low", label: "Basic", hint: "High quality, small compression", Icon: ShieldCheck },
-  { mode: "medium", label: "Balanced", hint: "Good quality, good compression", Icon: Zap },
-  { mode: "high", label: "Extreme", hint: "Lower quality, max compression", Icon: Minimize2 },
-  { mode: "target", label: "Target size", hint: "Compress to a size you choose", Icon: Target },
+  { mode: "low", label: "basic", hint: "basicHint", Icon: ShieldCheck },
+  { mode: "medium", label: "balanced", hint: "balancedHint", Icon: Zap },
+  { mode: "high", label: "extreme", hint: "extremeHint", Icon: Minimize2 },
+  { mode: "target", label: "target", hint: "targetHint", Icon: Target },
 ];
+
+function progressText(tt: CompressText, progress: CompressProgress | null) {
+  if (!progress) return tt.starting;
+  switch (progress.stage) {
+    case "render":
+      return tt.stageRender;
+    case "compress":
+      return tt.stageCompress;
+    case "optimize":
+      return tt.stageOptimize;
+    case "renderAt":
+      return format(tt.stageRenderAt, { dpi: progress.dpi });
+    case "tryQuality":
+      return format(tt.stageTryQuality, { quality: progress.quality, dpi: progress.dpi });
+  }
+}
 
 const PRESETS: { value: number; unit: Unit }[] = [
   { value: 200, unit: "KB" },
@@ -49,9 +71,11 @@ const toBytes = (value: number, unit: Unit) =>
   Math.round(value * (unit === "MB" ? 1024 * 1024 : 1024));
 
 export default function PdfCompress() {
+  const { t } = useI18n();
+  const tt = t.compress;
   const [file, setFile] = useState<File | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
-  const [progress, setProgress] = useState("");
+  const [progress, setProgress] = useState<CompressProgress | null>(null);
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("medium");
   const [targetValue, setTargetValue] = useState("500");
@@ -95,7 +119,7 @@ export default function PdfCompress() {
     const controller = new AbortController();
     abortRef.current = controller;
     setIsCompressing(true);
-    setProgress("Starting...");
+    setProgress(null);
 
     try {
       const buffer = await file.arrayBuffer();
@@ -113,7 +137,7 @@ export default function PdfCompress() {
     } catch (err) {
       if (!(err instanceof CompressCancelledError)) {
         console.error("Compression error:", err);
-        alert("Failed to compress PDF.");
+        alert(tt.failed);
       }
     } finally {
       abortRef.current = null;
@@ -130,8 +154,8 @@ export default function PdfCompress() {
     <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6 overflow-auto">
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Compress PDF</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Reduce file size while keeping the best possible quality.</p>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{tt.title}</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">{tt.subtitle}</p>
           <PrivacyNote />
         </header>
 
@@ -147,8 +171,8 @@ export default function PdfCompress() {
               <div className="rounded-full bg-blue-50 p-8 shadow-inner dark:bg-blue-900/20 mb-6 transition-transform group-hover:scale-110">
                 <Minimize2 className="h-12 w-12 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">Drop PDF here</h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-2">or click to browse from your device</p>
+              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">{t.common.dropPdf}</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-2">{t.common.dropBrowse}</p>
               <input
                 type="file"
                 accept="application/pdf"
@@ -156,7 +180,7 @@ export default function PdfCompress() {
                 onChange={(e) => handleFile(e.target.files?.[0])}
               />
               <div className="mt-8 rounded-2xl bg-blue-600 px-10 py-3.5 text-lg font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all">
-                Select File
+                {t.common.selectFile}
               </div>
             </label>
           </div>
@@ -184,7 +208,7 @@ export default function PdfCompress() {
                 }}
                 className="text-sm font-bold text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl transition-colors"
               >
-                Remove
+                {t.common.remove}
               </button>
             </div>
 
@@ -204,14 +228,14 @@ export default function PdfCompress() {
                       }`}
                     >
                       {optionMode === "medium" && mode === "medium" && (
-                        <span className="absolute -top-3 px-3 py-1 bg-blue-500 text-[10px] font-bold text-white rounded-full uppercase tracking-widest">Recommended</span>
+                        <span className="absolute -top-3 px-3 py-1 bg-blue-500 text-[10px] font-bold text-white rounded-full uppercase tracking-widest">{tt.recommended}</span>
                       )}
                       <div className={`p-2 rounded-lg ${mode === optionMode ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-400 dark:bg-slate-800"}`}>
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-slate-800 dark:text-slate-200">{label}</p>
-                        <p className="text-xs text-slate-500 mt-1">{hint}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{tt[label]}</p>
+                        <p className="text-xs text-slate-500 mt-1">{tt[hint]}</p>
                       </div>
                     </button>
                   ))}
@@ -221,8 +245,8 @@ export default function PdfCompress() {
                   <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
                     <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                      <b>Large document ({pageCount} pages):</b> this mode renders every page, so it can be slow and use a lot of memory
-                      {mode === "target" ? ", and Target size repeats the work for each quality it tries" : ""}. Basic mode is much faster. Close other tabs if the browser becomes unresponsive.
+                      <b>{format(tt.largeDocTitle, { count: pageCount })}</b> {tt.largeDocBody}
+                      {mode === "target" ? tt.largeDocTarget : ""}{tt.largeDocTail}
                     </p>
                   </div>
                 )}
@@ -230,7 +254,7 @@ export default function PdfCompress() {
                 {mode === "target" && (
                   <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-200" htmlFor="target-size">
-                      Maximum file size
+                      {tt.maxSize}
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -244,7 +268,7 @@ export default function PdfCompress() {
                         className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-lg font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       />
                       <select
-                        aria-label="Unit"
+                        aria-label={tt.unit}
                         value={targetUnit}
                         disabled={isCompressing}
                         onChange={(e) => setTargetUnit(e.target.value as Unit)}
@@ -271,11 +295,11 @@ export default function PdfCompress() {
                       ))}
                     </div>
                     {targetInvalid && (
-                      <p className="text-xs text-red-500">Enter a size greater than 0.</p>
+                      <p className="text-xs text-red-500">{tt.invalidTarget}</p>
                     )}
                     {targetAlreadyMet && (
                       <p className="text-xs text-emerald-600">
-                        Your file ({formatSize(originalSize)}) is already within this target.
+                        {format(tt.alreadyMet, { size: formatSize(originalSize) })}
                       </p>
                     )}
                   </div>
@@ -284,7 +308,7 @@ export default function PdfCompress() {
                 <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
                   <Info className="h-5 w-5 text-amber-600 flex-shrink-0" />
                   <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                    <b>Note:</b> Balanced, Extreme, and Target size modes may convert text to images to achieve significant size reduction. Target size tries lossless optimization first. For text-only PDFs with no images, use Basic mode.
+                    <b>{tt.noteTitle}</b> {tt.noteBody}
                   </p>
                 </div>
               </>
@@ -298,16 +322,16 @@ export default function PdfCompress() {
                     disabled={isCompressing || targetInvalid || targetAlreadyMet}
                     className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 text-xl font-bold text-white shadow-2xl shadow-blue-600/30 transition-all hover:bg-blue-700 hover:-translate-y-1 disabled:opacity-50 disabled:translate-y-0"
                   >
-                    {isCompressing ? "Compressing..." : "Compress PDF"}
+                    {isCompressing ? tt.compressing : tt.compressButton}
                   </button>
                   {isCompressing && (
                     <>
-                      <p className="text-center text-sm text-slate-500" role="status">{progress}</p>
+                      <p className="text-center text-sm text-slate-500" role="status">{progressText(tt, progress)}</p>
                       <button
                         onClick={() => abortRef.current?.abort()}
                         className="rounded-2xl bg-slate-100 py-3 text-sm font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
                       >
-                        Cancel
+                        {t.common.cancel}
                       </button>
                     </>
                   )}
@@ -316,12 +340,12 @@ export default function PdfCompress() {
                 <div className="w-full space-y-6">
                   {result.reachedTarget ? (
                     <div className="flex flex-col items-center p-8 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-dashed border-emerald-300 dark:border-emerald-800 rounded-3xl text-center">
-                      <h3 className="text-2xl font-bold text-emerald-600 mb-2">Success!</h3>
+                      <h3 className="text-2xl font-bold text-emerald-600 mb-2">{tt.success}</h3>
                       <p className="text-slate-600 dark:text-slate-300 text-lg">
                         {savings > 0 ? (
-                          <>Your PDF is now <span className="font-bold text-emerald-600">{savings}%</span> smaller!</>
+                          <>{tt.smallerBefore}<span className="font-bold text-emerald-600">{savings}%</span>{tt.smallerAfter}</>
                         ) : (
-                          <>This PDF could not be made smaller with this setting.</>
+                          <>{tt.notSmaller}</>
                         )}
                       </p>
                       <Sizes before={originalSize} after={compressedSize ?? 0} target={result.targetBytes} />
@@ -329,9 +353,9 @@ export default function PdfCompress() {
                   ) : (
                     <div className="flex flex-col items-center p-8 bg-amber-50 dark:bg-amber-900/20 border-2 border-dashed border-amber-300 dark:border-amber-800 rounded-3xl text-center">
                       <AlertTriangle className="h-8 w-8 text-amber-600 mb-2" />
-                      <h3 className="text-2xl font-bold text-amber-600 mb-2">Target not reached</h3>
+                      <h3 className="text-2xl font-bold text-amber-600 mb-2">{tt.targetMissed}</h3>
                       <p className="text-slate-600 dark:text-slate-300">
-                        The smallest result we could produce is {formatSize(compressedSize ?? 0)}. Try a larger target.
+                        {format(tt.targetMissedBody, { size: formatSize(compressedSize ?? 0) })}
                       </p>
                       <Sizes before={originalSize} after={compressedSize ?? 0} target={result.targetBytes} />
                     </div>
@@ -342,14 +366,14 @@ export default function PdfCompress() {
                       onClick={() => setResult(null)}
                       className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-slate-100 py-4 text-lg font-bold text-slate-700 transition-all hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
                     >
-                      Try Again
+                      {tt.tryAgain}
                     </button>
                     <button
                       onClick={() => download(result.blob)}
                       className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 text-lg font-bold text-white shadow-xl shadow-blue-600/20 transition-all hover:bg-blue-700 hover:-translate-y-1"
                     >
                       <Download className="h-5 w-5" />
-                      Download
+                      {t.common.download}
                     </button>
                   </div>
                 </div>
@@ -367,12 +391,13 @@ function Sizes({
   after,
   target,
 }: Readonly<{ before: number; after: number; target: number | null }>) {
+  const { t } = useI18n();
   return (
     <div className="mt-4 flex flex-wrap justify-center gap-x-8 gap-y-1 text-sm">
-      <div className="text-slate-400">Before: <span className="text-slate-600 dark:text-slate-200 font-bold">{formatSize(before)}</span></div>
-      <div className="text-slate-400">After: <span className="text-emerald-600 font-bold">{formatSize(after)}</span></div>
+      <div className="text-slate-400">{t.compress.before} <span className="text-slate-600 dark:text-slate-200 font-bold">{formatSize(before)}</span></div>
+      <div className="text-slate-400">{t.compress.after} <span className="text-emerald-600 font-bold">{formatSize(after)}</span></div>
       {target !== null && (
-        <div className="text-slate-400">Target: <span className="text-slate-600 dark:text-slate-200 font-bold">{formatSize(target)}</span></div>
+        <div className="text-slate-400">{t.compress.targetLabel} <span className="text-slate-600 dark:text-slate-200 font-bold">{formatSize(target)}</span></div>
       )}
     </div>
   );
