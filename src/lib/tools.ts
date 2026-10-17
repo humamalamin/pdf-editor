@@ -4,6 +4,8 @@ export type ToolId =
   | "compress"
   | "merge"
   | "split"
+  | "pdf-to-image"
+  | "image-to-pdf"
   | "watermark"
   | "protect";
 
@@ -137,6 +139,59 @@ export const tools: Record<ToolId, ToolConfig> = {
       {
         question: "Can I extract only certain pages?",
         answer: "Yes. Select the page ranges you need and export just those pages.",
+      },
+    ],
+  },
+  "pdf-to-image": {
+    id: "pdf-to-image",
+    label: "PDF to JPG",
+    path: "/pdf-to-jpg",
+    title: "Convert PDF to JPG or PNG Online",
+    heading: "Convert PDF Pages to JPG or PNG Images",
+    description:
+      "Turn PDF pages into high-quality JPG or PNG images in your browser. Choose the pages and resolution, with no upload to any server.",
+    steps: [
+      "Open a PDF from your device.",
+      "Select the pages, then pick JPG or PNG and a resolution.",
+      "Download a single image, or a ZIP file when you convert several pages.",
+    ],
+    faq: [
+      privacyFaq,
+      {
+        question: "Which resolution should I choose?",
+        answer:
+          "Medium (150 DPI) is sharp on screens and keeps files small. Choose High (300 DPI) if you plan to print the images.",
+      },
+      {
+        question: "Should I pick JPG or PNG?",
+        answer:
+          "JPG gives smaller files and suits scanned pages and photos. PNG is lossless, so text and lines stay crisp, but files are larger.",
+      },
+    ],
+  },
+  "image-to-pdf": {
+    id: "image-to-pdf",
+    label: "JPG to PDF",
+    path: "/jpg-to-pdf",
+    title: "Convert JPG to PDF Online",
+    heading: "Convert JPG and PNG Images to PDF",
+    description:
+      "Combine JPG, PNG, and other images into a single PDF in your browser. Reorder, rotate, and choose the page size, with no upload to any server.",
+    steps: [
+      "Add one or more images from your device.",
+      "Reorder or rotate them, and choose the page size and margin.",
+      "Download the PDF, with one image per page.",
+    ],
+    faq: [
+      privacyFaq,
+      {
+        question: "Can I combine several photos into one PDF?",
+        answer: "Yes. Add as many images as you like, arrange them in order, and they become one PDF with a page per image.",
+      },
+      {
+        question: "Will my images lose quality?",
+        answer:
+          "Upright JPG and PNG files are embedded as they are, without recompression. Other formats and rotated phone photos are converted at high quality.",
       },
     ],
   },

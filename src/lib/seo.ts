@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "PDFEditor",
   title: "PDFEditor - Private Browser-Based PDF Editor",
   description:
-    "Edit, annotate, sign, organize, compress, merge, and split PDF files securely in your browser without uploading documents to a server.",
+    "Edit, annotate, sign, organize, compress, merge, split, and convert PDF files securely in your browser without uploading documents to a server.",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://pdfeditor.my.id",
   ogImage: "/cover.jpg",
   keywords: [
@@ -11,6 +11,8 @@ export const siteConfig = {
     "merge PDF",
     "split PDF",
     "compress PDF",
+    "PDF to JPG",
+    "JPG to PDF",
     "organize PDF pages",
     "sign PDF",
     "private PDF editor",

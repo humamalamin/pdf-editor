@@ -8,7 +8,10 @@ export default function ToolPage({ toolId }: Readonly<{ toolId: ToolId }>) {
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      name: toolId === "edit" ? siteConfig.name : `${siteConfig.name} - ${tool.label} PDF`,
+      name:
+        toolId === "edit"
+          ? siteConfig.name
+          : `${siteConfig.name} - ${tool.label.includes("PDF") ? tool.label : `${tool.label} PDF`}`,
       url: absoluteUrl(tool.path),
       description: tool.description,
       applicationCategory: "BusinessApplication",
