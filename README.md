@@ -15,6 +15,7 @@ This application allows anyone to securely open, view, annotate, and sign PDF do
 - 📝 **Multi-line Text Annotations**: Interact directly with the document layout. Press **Enter** to make paragraphs, stretch the textbox, and adjust font sizes dynamically *(from 8px to 72px)*!
 - 🔍 **Select, Copy, and Search Text**: PDF text can be selected and copied, and Ctrl+F searches the whole document with highlighted results.
 - ⬛ **True Redaction**: Redaction boxes (drawn by hand, or "Redact all" on search results) permanently remove the text, images, and form values underneath: pages with redactions are saved as images, and the old content is dropped from the file.
+- 🖊️ **Freehand Pen**: Draw initials, notes, or marks by hand. Strokes are smoothed, can be moved, resized, and recolored, and are saved as vector paths.
 - ✍️ **Image Signatures**: Easily upload and position PNG/JPG signatures directly onto specific documents.
 - 🚀 **1-Click Export**: Bake elements precisely onto original PDF vectors and download instantly.
 - 🖼️ **PDF to JPG/PNG**: Export selected pages as images at 72, 150, or 300 DPI (several pages download as a ZIP).

@@ -33,7 +33,8 @@ export default function ShapeToolbar({
 }) {
   const { t } = useI18n();
   const tb = t.toolbar;
-  const hasStroke = kind === "rect" || kind === "ellipse" || kind === "line" || kind === "check" || kind === "cross";
+  const hasStroke =
+    kind === "rect" || kind === "ellipse" || kind === "line" || kind === "check" || kind === "cross" || kind === "ink";
 
   return (
     <ToolbarShell>

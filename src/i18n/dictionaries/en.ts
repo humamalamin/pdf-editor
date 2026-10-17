@@ -559,6 +559,7 @@ export const en = {
       line: { label: "Line", hint: "Draw a line (Shift snaps to 45°)" },
       check: { label: "Check", hint: "Place a check mark" },
       cross: { label: "Cross", hint: "Place a cross mark" },
+      ink: { label: "Pen", hint: "Draw freehand, e.g. initials or notes (Esc to stop)" },
     },
   },
   toolbar: {

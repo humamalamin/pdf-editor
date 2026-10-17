@@ -1,4 +1,4 @@
-export type ShapeKind = "whiteout" | "redact" | "highlight" | "rect" | "ellipse" | "line" | "check" | "cross";
+export type ShapeKind = "whiteout" | "redact" | "highlight" | "rect" | "ellipse" | "line" | "check" | "cross" | "ink";
 
 export type ShapeStyle = {
   stroke: string; // #rrggbb
@@ -16,6 +16,7 @@ export const SHAPE_DEFAULTS: Record<ShapeKind, ShapeStyle> = {
   line: { stroke: "#dc2626", fill: null, strokeWidth: 2, opacity: 1 },
   check: { stroke: "#16a34a", fill: null, strokeWidth: 3, opacity: 1 },
   cross: { stroke: "#dc2626", fill: null, strokeWidth: 3, opacity: 1 },
+  ink: { stroke: "#2563eb", fill: null, strokeWidth: 2, opacity: 1 },
 };
 
 // Size used when the user clicks instead of dragging (PDF points)
@@ -28,6 +29,7 @@ export const SHAPE_DEFAULT_SIZE: Record<ShapeKind, { width: number; height: numb
   line: { width: 120, height: 0 },
   check: { width: 20, height: 20 },
   cross: { width: 20, height: 20 },
+  ink: { width: 0, height: 0 }, // always drawn, never placed with a click
 };
 
 /** Shapes whose box keeps a 1:1 aspect ratio */

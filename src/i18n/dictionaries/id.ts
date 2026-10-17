@@ -571,6 +571,7 @@ export const id: Dictionary = {
       line: { label: "Garis", hint: "Gambar garis (Shift untuk sudut 45°)" },
       check: { label: "Centang", hint: "Beri tanda centang" },
       cross: { label: "Silang", hint: "Beri tanda silang" },
+      ink: { label: "Pena", hint: "Gambar bebas, misalnya paraf atau coretan (Esc untuk selesai)" },
     },
   },
   toolbar: {

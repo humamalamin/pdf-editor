@@ -16,6 +16,7 @@ import {
 import { applyFormValues, type FormField, type FormValues } from "@/lib/forms";
 import { SHAPE_DEFAULTS, SYMBOL_BOX, SYMBOL_PATHS, isRedaction, type ShapeKind, type ShapeStyle } from "@/lib/shapes";
 import { applyRedactions, removeUnreachableObjects } from "@/lib/redact";
+import { inkPointsForBox, smoothPath, type InkData } from "@/lib/ink";
 
 // All geometry is stored in unscaled PDF points (top-left origin); multiply by `scale` to render.
 export type Annotation = {
@@ -32,6 +33,7 @@ export type Annotation = {
   style?: ShapeStyle; // shape only
   x2?: number; // line only: end point (x, y is the start point)
   y2?: number;
+  ink?: InkData; // pen stroke only
 };
 
 export const formatOf = (ann: Annotation): TextFormat => ann.format ?? DEFAULT_TEXT_FORMAT;
@@ -211,6 +213,19 @@ function drawShape(pdfPage: PDFPage, ann: Annotation, left: number, top: number)
         lineCap: LineCapStyle.Round,
       });
       break;
+    case "ink": {
+      if (!ann.ink) break;
+      // drawSvgPath uses a y-down path from (x, y), like the SVG in the editor
+      pdfPage.drawSvgPath(smoothPath(inkPointsForBox(ann.ink, w, h)), {
+        x: left,
+        y: top,
+        borderColor: stroke,
+        borderWidth: sw,
+        borderLineCap: LineCapStyle.Round,
+        borderOpacity: style.opacity,
+      });
+      break;
+    }
     case "check":
     case "cross": {
       // drawSvgPath scales the line width together with the path

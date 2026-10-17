@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
 import { styleOf, type Annotation } from "@/lib/annotations";
 import { SYMBOL_BOX, SYMBOL_PATHS, isCover } from "@/lib/shapes";
+import { inkPointsForBox, smoothPath } from "@/lib/ink";
 
 /** Visual of a box-shaped shape, filling its (Rnd) container. Geometry matches the PDF export. */
 export function ShapeBody({ ann, scale }: { ann: Annotation; scale: number }) {
@@ -12,6 +13,26 @@ export function ShapeBody({ ann, scale }: { ann: Annotation; scale: number }) {
   const w = (ann.width ?? 0) * scale;
   const h = (ann.height ?? 0) * scale;
   const sw = style.strokeWidth * scale;
+
+  if (kind === "ink" && ann.ink) {
+    const points = inkPointsForBox(ann.ink, ann.width ?? 0, ann.height ?? 0).map(([x, y]): [number, number] => [
+      x * scale,
+      y * scale,
+    ]);
+    return (
+      <svg width={w} height={h} className="block overflow-visible">
+        <path
+          d={smoothPath(points)}
+          fill="none"
+          stroke={style.stroke}
+          strokeWidth={sw}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={style.opacity}
+        />
+      </svg>
+    );
+  }
 
   if (kind === "redact") {
     // The dashed outline only exists in the editor, to tell a redaction apart from a plain box

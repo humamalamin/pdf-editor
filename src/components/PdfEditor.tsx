@@ -30,6 +30,7 @@ import {
   X,
   Search,
   EyeOff,
+  Pencil,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
@@ -58,6 +59,7 @@ import { LineShape, ShapeBody, snapToAngle, type LineChangeInfo } from "@/compon
 import PdfPageCanvas from "@/components/PdfPageCanvas";
 import PdfTextLayer, { type TextHighlight } from "@/components/PdfTextLayer";
 import { measureMatchRects, useTextSearch, type SearchMatch } from "@/lib/textSearch";
+import { MIN_POINT_DISTANCE, inkFromStroke, smoothPath, type InkPoint } from "@/lib/ink";
 import PageThumbnails, { THUMBNAIL_SIDEBAR_WIDTH } from "@/components/PageThumbnails";
 import FormFieldsLayer from "@/components/FormFieldsLayer";
 import { loadFormFields, type FormField, type FormValues } from "@/lib/forms";
@@ -271,6 +273,8 @@ export default function PdfEditor() {
   const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
   const shapeMenuRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  // Pen stroke being drawn (page points)
+  const [inkDraft, setInkDraft] = useState<{ page: number; points: InkPoint[] } | null>(null);
   const lastShapeStyleRef = useRef<Partial<Record<ShapeKind, ShapeStyle>>>({});
   const [isSignOpen, setIsSignOpen] = useState(false);
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -842,8 +846,9 @@ export default function PdfEditor() {
 
   // ---- Drawing shapes ----
 
-  const pointInPage = (e: React.PointerEvent<HTMLDivElement>, page: number) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+  // Works for coalesced native events too, which have no React currentTarget
+  const pointInPage = (e: { clientX: number; clientY: number }, page: number) => {
+    const rect = pageRefs.current[page - 1]!.getBoundingClientRect();
     const size = pageSizes[page - 1];
     return {
       x: clamp((e.clientX - rect.left) / scale, 0, size.width),
@@ -915,10 +920,26 @@ export default function PdfEditor() {
     e.currentTarget.setPointerCapture(e.pointerId);
     const p = pointInPage(e, page);
     selectOnly(null);
+    if (tool === "ink") {
+      setInkDraft({ page, points: [[p.x, p.y]] });
+      return;
+    }
     setDraft({ page, kind: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y });
   };
 
   const handlePagePointerMove = (e: React.PointerEvent<HTMLDivElement>, page: number) => {
+    if (inkDraft?.page === page) {
+      // Coalesced events keep fast strokes smooth (the browser batches pointer moves per frame)
+      const events = e.nativeEvent.getCoalescedEvents?.() ?? [];
+      const points = [...inkDraft.points];
+      for (const ev of events.length ? events : [e.nativeEvent]) {
+        const p = pointInPage(ev, page);
+        const [lx, ly] = points[points.length - 1];
+        if (Math.hypot(p.x - lx, p.y - ly) >= MIN_POINT_DISTANCE) points.push([p.x, p.y]);
+      }
+      if (points.length !== inkDraft.points.length) setInkDraft({ page, points });
+      return;
+    }
     if (marquee?.page === page) {
       const p = pointInPage(e, page);
       setMarquee({ ...marquee, x2: p.x, y2: p.y });
@@ -935,6 +956,24 @@ export default function PdfEditor() {
   };
 
   const handlePagePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (inkDraft) {
+      const style = lastShapeStyleRef.current.ink ?? SHAPE_DEFAULTS.ink;
+      const stroke: Annotation = {
+        id: crypto.randomUUID(),
+        type: "shape",
+        shape: "ink",
+        style,
+        content: "",
+        page: inkDraft.page,
+        ...inkFromStroke(inkDraft.points, style.strokeWidth),
+      };
+      setInkDraft(null);
+      checkpoint();
+      setAnnotations((prev) => [...prev, stroke]);
+      // The pen stays active so initials or notes can take several strokes
+      suppressNextPageClick();
+      return;
+    }
     if (marquee) {
       finishMarquee(marquee, e.shiftKey || e.ctrlKey || e.metaKey);
       return;
@@ -1063,7 +1102,7 @@ export default function PdfEditor() {
   useEffect(() => {
     if (!pdfDoc || isSignOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
+      const target = e.target as HTMLElement | null;
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       // The browser's own find only sees pages that are rendered, so take over Ctrl+F everywhere
@@ -1072,7 +1111,7 @@ export default function PdfEditor() {
         openSearch();
         return;
       }
-      if (target.closest("input, textarea, select, [contenteditable]")) return;
+      if (target?.closest?.("input, textarea, select, [contenteditable]")) return;
 
       if (mod) {
         if (key === "z" && !e.shiftKey) undo();
@@ -1093,6 +1132,7 @@ export default function PdfEditor() {
       if (e.key === "Escape") {
         setTool(null);
         setDraft(null);
+        setInkDraft(null);
         setIsShapeMenuOpen(false);
         selectOnly(null);
         return;
@@ -1648,6 +1688,23 @@ export default function PdfEditor() {
   );
 
   // Live preview of the shape being dragged out
+  const renderInkDraft = (points: InkPoint[]) => {
+    const style = lastShapeStyleRef.current.ink ?? SHAPE_DEFAULTS.ink;
+    return (
+      <svg className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
+        <path
+          d={smoothPath(points.map(([x, y]): InkPoint => [x * scale, y * scale]))}
+          fill="none"
+          stroke={style.stroke}
+          strokeWidth={style.strokeWidth * scale}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={style.opacity}
+        />
+      </svg>
+    );
+  };
+
   const renderDraft = (d: Draft) => {
     const preview = shapeFromDraft(d, "draft");
     if (preview.shape === "line") {
@@ -1698,6 +1755,18 @@ export default function PdfEditor() {
           onClick={() => setTool((t) => (t === "text" ? null : "text"))}
         >
           <Type className="h-6 w-6" strokeWidth={1.5} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          label={te.shapeTools.ink.label}
+          title={te.shapeTools.ink.hint}
+          active={tool === "ink"}
+          onClick={() => {
+            setTool((t) => (t === "ink" ? null : "ink"));
+            selectOnly(null);
+          }}
+        >
+          <Pencil className="h-6 w-6" strokeWidth={1.5} />
         </ToolbarButton>
 
         <ToolbarButton
@@ -1822,6 +1891,8 @@ export default function PdfEditor() {
                       "relative shrink-0 bg-white shadow-xl",
                       tool && "cursor-crosshair ring-2 ring-blue-500/40",
                       tool && tool !== "text" && "touch-none select-none",
+                      // With the pen, strokes can start on top of existing annotations instead of grabbing them
+                      tool === "ink" && "[&_.pdf-annotation]:pointer-events-none [&_.pdf-annotation_*]:pointer-events-none",
                     marquee && "select-none"
                     )}
                     style={{ width: widthPx, height: size.height * scale, scrollMarginTop: SCROLL_PADDING_TOP - 8 }}
@@ -1852,6 +1923,7 @@ export default function PdfEditor() {
                       .filter((a) => a.page === page)
                       .map((ann) => (ann.shape === "line" ? renderLine(ann, size) : renderAnnotation(ann, widthPx)))}
                     {draft?.page === page && renderDraft(draft)}
+                    {inkDraft?.page === page && renderInkDraft(inkDraft.points)}
                   {guides?.page === page &&
                     guides.lines.map((g) => {
                       const vertical = g.orientation === "vertical";
