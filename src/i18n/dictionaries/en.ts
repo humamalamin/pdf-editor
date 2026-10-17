@@ -16,6 +16,7 @@ export const en = {
       "compress PDF",
       "PDF to JPG",
       "JPG to PDF",
+      "add page numbers to PDF",
       "organize PDF pages",
       "sign PDF",
       "private PDF editor",
@@ -182,6 +183,31 @@ export const en = {
           question: "Will my images lose quality?",
           answer:
             "Upright JPG and PNG files are embedded as they are, without recompression. Other formats and rotated phone photos are converted at high quality.",
+        },
+      ],
+    },
+    "page-numbers": {
+      label: "Page Numbers",
+      title: "Add Page Numbers to PDF Online",
+      heading: "Add Page Numbers to a PDF",
+      description:
+        "Number the pages of a PDF in your browser. Choose the position, format, and starting number, and skip the cover page. No upload to any server.",
+      steps: [
+        "Open a PDF from your device.",
+        'Pick where the numbers go and a format such as "Page 1 of 10", then check the preview.',
+        "Download the numbered PDF.",
+      ],
+      faq: [
+        privacyFaq,
+        {
+          question: "Can I skip the cover page?",
+          answer:
+            "Yes. Use Skip cover, or enter a page range such as 2-20. Numbering starts on the first page in the range, from the number you choose.",
+        },
+        {
+          question: 'Can I use a format like "Page 1 of 10"?',
+          answer:
+            "Yes. Pick a preset or type your own format, using {n} for the page number and {total} for the last number.",
         },
       ],
     },
@@ -573,6 +599,34 @@ export const en = {
     removeBackground: "Remove white background",
     saveOnDevice: "Save on this device",
     insert: "Insert",
+  },
+  pageNumbers: {
+    title: "Add Page Numbers",
+    subtitle: "Number the pages of your PDF in the position and format you want.",
+    openError: "Could not open this PDF. It may be damaged.",
+    position: "Position",
+    positions: {
+      "top-left": "Top left",
+      "top-center": "Top center",
+      "top-right": "Top right",
+      "bottom-left": "Bottom left",
+      "bottom-center": "Bottom center",
+      "bottom-right": "Bottom right",
+    },
+    format: "Format",
+    formats: ["{n}", "{n} / {total}", "Page {n}", "Page {n} of {total}", "- {n} -"],
+    formatHint: "Use {n} for the page number and {total} for the last number.",
+    enterFormat: "Enter a format.",
+    missingPlaceholder: "Include {n} where the page number should go.",
+    startAt: "Start at",
+    startError: "Enter a whole number, 0 or higher.",
+    margin: "Distance from edge",
+    skipCover: "Skip cover",
+    previewOf: "Preview of page {n}",
+    addButton: "Add page numbers",
+    done: "Page numbers added",
+    filePrefix: "numbered",
+    failed: "Failed to add page numbers.",
   },
 };
 

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { PenTool, Combine, Scissors, Layout, Minimize2, Stamp, Lock, FileImage, Images } from "lucide-react";
+import { PenTool, Combine, Scissors, Layout, Minimize2, Stamp, Lock, FileImage, Images, Hash } from "lucide-react";
 import { Globe } from "lucide-react";
 import { locales, type Locale } from "@/i18n/config";
 import { I18nProvider } from "@/i18n/client";
@@ -28,6 +28,10 @@ const ImageToPdf = dynamic(() => import("@/components/ImageToPdf"), {
   ssr: false,
 });
 
+const PdfPageNumbers = dynamic(() => import("@/components/PdfPageNumbers"), {
+  ssr: false,
+});
+
 const PdfWatermark = dynamic(() => import("@/components/PdfWatermark"), {
   ssr: false,
 });
@@ -44,6 +48,7 @@ const icons = {
   split: Scissors,
   "pdf-to-image": FileImage,
   "image-to-pdf": Images,
+  "page-numbers": Hash,
   watermark: Stamp,
   protect: Lock,
 } as const;
@@ -127,6 +132,7 @@ export default function PdfEditorApp({
           {tool === "split" && <PdfSplit />}
           {tool === "pdf-to-image" && <PdfToImage />}
           {tool === "image-to-pdf" && <ImageToPdf />}
+          {tool === "page-numbers" && <PdfPageNumbers />}
           {tool === "watermark" && <PdfWatermark />}
           {tool === "protect" && <PdfProtect />}
         </div>

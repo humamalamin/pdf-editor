@@ -8,6 +8,7 @@ export const toolIds = [
   "split",
   "pdf-to-image",
   "image-to-pdf",
+  "page-numbers",
   "watermark",
   "protect",
 ] as const;
@@ -23,6 +24,7 @@ const toolPaths: Record<ToolId, Record<Locale, string>> = {
   split: { en: "/split-pdf", id: "/id/pisah-pdf" },
   "pdf-to-image": { en: "/pdf-to-jpg", id: "/id/pdf-ke-jpg" },
   "image-to-pdf": { en: "/jpg-to-pdf", id: "/id/jpg-ke-pdf" },
+  "page-numbers": { en: "/add-page-numbers", id: "/id/nomor-halaman-pdf" },
   watermark: { en: "/watermark-pdf", id: "/id/watermark-pdf" },
   protect: { en: "/protect-pdf", id: "/id/kunci-pdf" },
 };

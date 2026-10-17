@@ -19,6 +19,7 @@ export const id: Dictionary = {
       "kecilkan ukuran PDF",
       "PDF ke JPG",
       "JPG ke PDF",
+      "nomor halaman PDF",
       "atur halaman PDF",
       "tanda tangan PDF",
       "editor PDF gratis",
@@ -193,6 +194,31 @@ export const id: Dictionary = {
           question: "Apakah kualitas gambar akan turun?",
           answer:
             "File JPG dan PNG yang posisinya tegak dimasukkan apa adanya tanpa kompresi ulang. Format lain dan foto ponsel yang terputar dikonversi dengan kualitas tinggi.",
+        },
+      ],
+    },
+    "page-numbers": {
+      label: "Nomor Halaman",
+      title: "Tambah Nomor Halaman PDF Online",
+      heading: "Tambahkan Nomor Halaman ke PDF",
+      description:
+        "Beri nomor halaman pada PDF langsung di browser. Pilih posisi, format, dan nomor awal, serta lewati halaman sampul. Tanpa mengunggah ke server.",
+      steps: [
+        "Buka file PDF dari perangkat Anda.",
+        'Pilih posisi nomor dan format seperti "Halaman 1 dari 10", lalu cek pratinjaunya.',
+        "Unduh PDF yang sudah diberi nomor.",
+      ],
+      faq: [
+        privacyFaq,
+        {
+          question: "Bisakah halaman sampul dilewati?",
+          answer:
+            "Bisa. Gunakan Lewati sampul, atau masukkan rentang halaman seperti 2-20. Penomoran dimulai dari halaman pertama dalam rentang, dengan nomor awal yang Anda pilih.",
+        },
+        {
+          question: 'Bisakah saya memakai format seperti "Halaman 1 dari 10"?',
+          answer:
+            "Bisa. Pilih salah satu format atau ketik format sendiri, dengan {n} untuk nomor halaman dan {total} untuk nomor terakhir.",
         },
       ],
     },
@@ -585,5 +611,33 @@ export const id: Dictionary = {
     removeBackground: "Hapus latar belakang putih",
     saveOnDevice: "Simpan di perangkat ini",
     insert: "Sisipkan",
+  },
+  pageNumbers: {
+    title: "Tambah Nomor Halaman",
+    subtitle: "Beri nomor halaman pada PDF dengan posisi dan format yang Anda inginkan.",
+    openError: "PDF ini tidak bisa dibuka. Mungkin file-nya rusak.",
+    position: "Posisi",
+    positions: {
+      "top-left": "Kiri atas",
+      "top-center": "Tengah atas",
+      "top-right": "Kanan atas",
+      "bottom-left": "Kiri bawah",
+      "bottom-center": "Tengah bawah",
+      "bottom-right": "Kanan bawah",
+    },
+    format: "Format",
+    formats: ["{n}", "{n} / {total}", "Halaman {n}", "Halaman {n} dari {total}", "- {n} -"],
+    formatHint: "Gunakan {n} untuk nomor halaman dan {total} untuk nomor terakhir.",
+    enterFormat: "Masukkan format.",
+    missingPlaceholder: "Sertakan {n} di tempat nomor halaman akan muncul.",
+    startAt: "Mulai dari",
+    startError: "Masukkan bilangan bulat, 0 atau lebih.",
+    margin: "Jarak dari tepi",
+    skipCover: "Lewati sampul",
+    previewOf: "Pratinjau halaman {n}",
+    addButton: "Tambahkan nomor halaman",
+    done: "Nomor halaman berhasil ditambahkan",
+    filePrefix: "bernomor",
+    failed: "Gagal menambahkan nomor halaman.",
   },
 };
