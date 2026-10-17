@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from "react";
 import {
   Upload,
   Type,
@@ -28,6 +28,9 @@ import {
   Slash,
   Check,
   X,
+  Search,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Rnd } from "react-rnd";
 import { pdfjsLib } from "@/lib/pdfjs";
@@ -50,6 +53,8 @@ import TextToolbar from "@/components/TextToolbar";
 import ShapeToolbar from "@/components/ShapeToolbar";
 import { LineShape, ShapeBody, snapToAngle, type LineChangeInfo } from "@/components/ShapeView";
 import PdfPageCanvas from "@/components/PdfPageCanvas";
+import PdfTextLayer, { type TextHighlight } from "@/components/PdfTextLayer";
+import { useTextSearch, type SearchMatch } from "@/lib/textSearch";
 import PageThumbnails, { THUMBNAIL_SIDEBAR_WIDTH } from "@/components/PageThumbnails";
 import FormFieldsLayer from "@/components/FormFieldsLayer";
 import { loadFormFields, type FormField, type FormValues } from "@/lib/forms";
@@ -77,6 +82,7 @@ const SCROLL_PADDING_X = 16;
 const DUPLICATE_OFFSET = 12;
 const CLIPBOARD_MIME = "application/x-pdfeditor-annotations";
 const SNAP_THRESHOLD_PX = 6;
+const NO_HIGHLIGHTS: TextHighlight[] = [];
 
 const isModifierClick = (e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) =>
   e.shiftKey || e.ctrlKey || e.metaKey;
@@ -313,6 +319,52 @@ export default function PdfEditor() {
   const lastFormatRef = useRef<TextFormat>(DEFAULT_TEXT_FORMAT);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // ---- Text search ----
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchIndex, setSearchIndex] = useState(0);
+  const [searchScrollToken, setSearchScrollToken] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Shows match `index` (wrapping around). Far-away pages are scrolled to first so their text
+  // layer renders; the layer then centres the match itself.
+  const showMatch = (list: SearchMatch[], index: number) => {
+    if (list.length === 0) return;
+    const i = ((index % list.length) + list.length) % list.length;
+    setSearchIndex(i);
+    setSearchScrollToken((t) => t + 1);
+    const pageEl = pageRefs.current[list[i].page - 1];
+    const scroller = scrollRef.current;
+    if (!pageEl || !scroller) return;
+    const p = pageEl.getBoundingClientRect();
+    const s = scroller.getBoundingClientRect();
+    if (p.bottom < s.top || p.top > s.bottom) scroller.scrollTo({ top: pageEl.offsetTop - (SCROLL_PADDING_TOP - 8) });
+  };
+
+  const { matches: searchMatches, searching, hasText } = useTextSearch(pdfDoc, searchQuery, isSearchOpen, (found) =>
+    showMatch(found, 0)
+  );
+  const currentMatch = searchMatches.length ? Math.min(searchIndex, searchMatches.length - 1) : -1;
+  const highlightsByPage = useMemo(() => {
+    const byPage = new Map<number, TextHighlight[]>();
+    searchMatches.forEach((m, i) => {
+      const list = byPage.get(m.page) ?? [];
+      list.push({ segments: m.segments, current: i === currentMatch });
+      byPage.set(m.page, list);
+    });
+    return byPage;
+  }, [searchMatches, currentMatch]);
+
+  const openSearch = () => {
+    setIsSearchOpen(true);
+    // Focus after the panel mounts; select so typing replaces the previous query
+    requestAnimationFrame(() => searchInputRef.current?.select());
+  };
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+    setSearchIndex(0);
+  };
   // Content point to keep under the same screen position across a zoom change
   const zoomAnchorRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number; from: number } | null>(
     null
@@ -548,6 +600,8 @@ export default function PdfEditor() {
   const { isDragging, dropProps } = useFileDrop((files) => handleFile(files[0]));
 
   const handleClear = () => {
+    closeSearch();
+    setSearchQuery("");
     setAutosaveStatus("idle");
     setPdfFile(null);
     setPdfDoc(null);
@@ -812,6 +866,8 @@ export default function PdfEditor() {
   const handlePagePointerDown = (e: React.PointerEvent<HTMLDivElement>, page: number) => {
     if (tool === "text" || e.button !== 0) return;
     if ((e.target as HTMLElement).closest(".pdf-annotation")) return;
+    // Pressing on the PDF's own text selects it (native selection) instead of starting a marquee
+    if (!tool && (e.target as HTMLElement).closest(".textLayer span")) return;
     if (!tool) {
       // Empty page area with no tool: rubber-band selection
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -972,9 +1028,15 @@ export default function PdfEditor() {
     if (!pdfDoc || isSignOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest("input, textarea, select, [contenteditable]")) return;
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
+      // The browser's own find only sees pages that are rendered, so take over Ctrl+F everywhere
+      if (mod && key === "f" && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        openSearch();
+        return;
+      }
+      if (target.closest("input, textarea, select, [contenteditable]")) return;
 
       if (mod) {
         if (key === "z" && !e.shiftKey) undo();
@@ -1051,6 +1113,9 @@ export default function PdfEditor() {
 
     const onCopy = (cut: boolean) => (e: ClipboardEvent) => {
       if (inField(e) || selectedIds.length === 0) return;
+      // Text selected on the page itself: let the browser copy it
+      const selection = document.getSelection();
+      if (selection && !selection.isCollapsed && selection.anchorNode?.parentElement?.closest(".textLayer")) return;
       const items = annotations.filter((a) => selectedIds.includes(a.id));
       if (items.length === 0) return;
       e.preventDefault();
@@ -1656,6 +1721,10 @@ export default function PdfEditor() {
           )}
         </div>
 
+        <ToolbarButton label={te.search} title={te.searchHint} active={isSearchOpen} onClick={() => (isSearchOpen ? closeSearch() : openSearch())}>
+          <Search className="h-6 w-6" strokeWidth={1.5} />
+        </ToolbarButton>
+
         <ToolbarDivider />
 
         <ToolbarButton label={te.undo} title={te.undoHint} onClick={undo} disabled={!canUndo}>
@@ -1725,6 +1794,14 @@ export default function PdfEditor() {
                       scale={scale}
                       hideFormWidgets={formFields.some((f) => f.page === page)}
                     />
+                    <PdfTextLayer
+                      pdfDoc={pdfDoc}
+                      pageNumber={page}
+                      scale={scale}
+                      interactive={tool === null && !marquee}
+                      highlights={highlightsByPage.get(page) ?? NO_HIGHLIGHTS}
+                      scrollToken={searchMatches[currentMatch]?.page === page ? searchScrollToken : -1}
+                    />
                     <FormFieldsLayer
                       fields={formFields.filter((f) => f.page === page)}
                       values={formValues}
@@ -1789,6 +1866,78 @@ export default function PdfEditor() {
           </div>
         </div>
       </div>
+
+      {isSearchOpen && (
+        <div
+          role="search"
+          className="absolute right-6 top-[7.25rem] z-50 flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 text-sm text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        >
+          <Search className="ml-1 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            autoFocus
+            value={searchQuery}
+            placeholder={te.searchPlaceholder}
+            aria-label={te.searchPlaceholder}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setSearchIndex(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                showMatch(searchMatches, currentMatch + (e.shiftKey ? -1 : 1));
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                closeSearch();
+              }
+            }}
+            className="w-44 bg-transparent px-1 py-1 outline-none placeholder:text-slate-400 sm:w-56"
+          />
+          <span className="min-w-[4.5rem] whitespace-nowrap px-1 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400" aria-live="polite">
+            {searchQuery.trim() === ""
+              ? ""
+              : searching
+                ? te.searching
+                : searchMatches.length > 0
+                  ? format(te.resultOf, { current: currentMatch + 1, total: searchMatches.length })
+                  : hasText
+                    ? te.noResults
+                    : te.noText}
+          </span>
+          <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-700" />
+          <button
+            type="button"
+            onClick={() => showMatch(searchMatches, currentMatch - 1)}
+            disabled={searchMatches.length === 0}
+            title={te.prevMatch}
+            aria-label={te.prevMatch}
+            className="rounded-lg p-1 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
+          >
+            <ChevronUp className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => showMatch(searchMatches, currentMatch + 1)}
+            disabled={searchMatches.length === 0}
+            title={te.nextMatch}
+            aria-label={te.nextMatch}
+            className="rounded-lg p-1 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={closeSearch}
+            title={te.closeSearch}
+            aria-label={te.closeSearch}
+            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {selectedIds.length > 1 && (
         <div className="absolute left-1/2 top-[7.25rem] z-50 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-sm text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">

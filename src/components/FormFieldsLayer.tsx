@@ -25,7 +25,9 @@ export default function FormFieldsLayer({
   onChange: (name: string, value: string) => void;
 }) {
   return (
-    <div className={cn("absolute inset-0", inactive && "pointer-events-none")}>
+    // The layer itself never takes the pointer, so the PDF text underneath stays selectable;
+    // only the field controls do (and not while a drawing tool is active).
+    <div className="pointer-events-none absolute inset-0">
       {fields.map((f) => {
         const value = values[f.name] ?? "";
         const box: React.CSSProperties = {
@@ -40,6 +42,7 @@ export default function FormFieldsLayer({
         };
         const surface = cn(
           "pdf-annotation absolute outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500",
+          !inactive && "pointer-events-auto",
           !f.readOnly && "hover:brightness-95",
           f.readOnly && "cursor-not-allowed"
         );

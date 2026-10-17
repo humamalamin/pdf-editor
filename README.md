@@ -13,6 +13,7 @@ This application allows anyone to securely open, view, annotate, and sign PDF do
 - 🔒 **Absolute Privacy (Client-Side Rendering)**: Documents never leave your device.
 - 👁️ **Multi-Page Navigation**: Smoothly render and scroll through multi-page PDFs using *PDF.js*.
 - 📝 **Multi-line Text Annotations**: Interact directly with the document layout. Press **Enter** to make paragraphs, stretch the textbox, and adjust font sizes dynamically *(from 8px to 72px)*!
+- 🔍 **Select, Copy, and Search Text**: PDF text can be selected and copied, and Ctrl+F searches the whole document with highlighted results.
 - ✍️ **Image Signatures**: Easily upload and position PNG/JPG signatures directly onto specific documents.
 - 🚀 **1-Click Export**: Bake elements precisely onto original PDF vectors and download instantly.
 - 🖼️ **PDF to JPG/PNG**: Export selected pages as images at 72, 150, or 300 DPI (several pages download as a ZIP).
