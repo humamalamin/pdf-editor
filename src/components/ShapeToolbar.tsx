@@ -4,6 +4,7 @@ import React from "react";
 import {
   FILL_COLORS,
   HIGHLIGHT_COLORS,
+  REDACT_COLORS,
   STROKE_COLORS,
   STROKE_WIDTHS,
   type ShapeKind,
@@ -49,6 +50,21 @@ export default function ShapeToolbar({
             value={style.fill}
             onChange={(fill) => fill && onChange({ fill, stroke: fill })}
             title={tb.coverColor}
+          />
+          <ToolbarDivider />
+        </>
+      )}
+
+      {kind === "redact" && (
+        <>
+          <span className="px-1 text-[11px] font-semibold text-red-600" title={tb.redactHint}>
+            {tb.redact}
+          </span>
+          <ColorSwatches
+            colors={REDACT_COLORS}
+            value={style.fill}
+            onChange={(fill) => fill && onChange({ fill, stroke: fill })}
+            title={tb.redactColor}
           />
           <ToolbarDivider />
         </>

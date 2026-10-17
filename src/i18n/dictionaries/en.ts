@@ -546,8 +546,13 @@ export const en = {
     prevMatch: "Previous result (Shift+Enter)",
     nextMatch: "Next result (Enter)",
     closeSearch: "Close search (Esc)",
+    redactAll: "Redact all",
+    redactAllHint: "Cover every result with a redaction box",
+    redactConfirm:
+      "{count} page(s) contain redactions. To remove the hidden content for good, these pages will be saved as images: their text can no longer be selected or searched, and form fields on them are removed. Continue?",
     shapeTools: {
       whiteout: { label: "Whiteout", hint: "Cover content with a white box" },
+      redact: { label: "Redact", hint: "Permanently remove sensitive text or images" },
       highlight: { label: "Highlight", hint: "Mark text with a highlighter" },
       rect: { label: "Rectangle", hint: "Draw a box" },
       ellipse: { label: "Ellipse", hint: "Draw a circle or ellipse" },
@@ -573,8 +578,12 @@ export const en = {
     alignRight: "Align right",
     cover: "Cover",
     coverHint:
-      "Whiteout only covers content visually: the original text is still inside the PDF and can be copied or extracted.",
+      "Whiteout only covers content visually: the original text is still inside the PDF and can be copied or extracted. Use Redact to remove it for good.",
     coverColor: "Cover color",
+    redact: "Redaction",
+    redactHint:
+      "Permanently removes the text and images under this box. When you save, the page is turned into an image so nothing underneath can be recovered.",
+    redactColor: "Redaction color",
     highlightColor: "Highlight color",
     lineColor: "Line color",
     thickness: "Thickness {width} pt",

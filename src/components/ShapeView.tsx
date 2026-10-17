@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
 import { styleOf, type Annotation } from "@/lib/annotations";
-import { SYMBOL_BOX, SYMBOL_PATHS } from "@/lib/shapes";
+import { SYMBOL_BOX, SYMBOL_PATHS, isCover } from "@/lib/shapes";
 
 /** Visual of a box-shaped shape, filling its (Rnd) container. Geometry matches the PDF export. */
 export function ShapeBody({ ann, scale }: { ann: Annotation; scale: number }) {
@@ -13,7 +13,17 @@ export function ShapeBody({ ann, scale }: { ann: Annotation; scale: number }) {
   const h = (ann.height ?? 0) * scale;
   const sw = style.strokeWidth * scale;
 
-  if (kind === "whiteout" || kind === "highlight") {
+  if (kind === "redact") {
+    // The dashed outline only exists in the editor, to tell a redaction apart from a plain box
+    return (
+      <div
+        className="h-full w-full outline-1 outline-offset-0 outline-red-500 outline-dashed"
+        style={{ backgroundColor: style.fill ?? style.stroke }}
+      />
+    );
+  }
+
+  if (isCover(kind) || kind === "highlight") {
     return <div className="h-full w-full" style={{ backgroundColor: style.fill ?? style.stroke, opacity: style.opacity }} />;
   }
 

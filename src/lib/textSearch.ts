@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { pdfjsLib } from "@/lib/pdfjs";
 
 /**
  * Text of one page, built from the same items (and in the same order) as the spans that
@@ -80,6 +81,55 @@ export function findMatches(pages: PageText[], query: string): SearchMatch[] {
     }
   });
   return matches;
+}
+
+/** A rectangle in PDF points, top-left origin, in the page's displayed orientation. */
+export type PageRect = { page: number; x: number; y: number; width: number; height: number };
+
+/**
+ * Page-space rectangles covering each match. Text is laid out with an off-screen pdf.js TextLayer
+ * at scale 1 (the same layout the visible layer uses), so it works for pages that aren't rendered.
+ * `padding` (points) grows each rectangle so redaction boxes fully cover the glyphs.
+ */
+export async function measureMatchRects(pdf: PDFDocumentProxy, matches: SearchMatch[], padding = 0) {
+  const rects: PageRect[] = [];
+  const pages = [...new Set(matches.map((m) => m.page))];
+  for (const pageNumber of pages) {
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 1 });
+    const container = document.createElement("div");
+    container.className = "textLayer";
+    Object.assign(container.style, { position: "fixed", left: "-100000px", top: "0", visibility: "hidden" });
+    container.style.setProperty("--total-scale-factor", "1");
+    document.body.append(container);
+    try {
+      const layer = new pdfjsLib.TextLayer({ textContentSource: page.streamTextContent(), container, viewport });
+      await layer.render();
+      const origin = container.getBoundingClientRect();
+      const range = document.createRange();
+      for (const match of matches.filter((m) => m.page === pageNumber)) {
+        for (const { item, start, end } of match.segments) {
+          const node = layer.textDivs[item]?.firstChild;
+          if (!node || node.nodeType !== Node.TEXT_NODE) continue;
+          const length = (node as Text).length;
+          range.setStart(node, Math.min(start, length));
+          range.setEnd(node, Math.min(end, length));
+          for (const r of range.getClientRects()) {
+            rects.push({
+              page: pageNumber,
+              x: Math.max(0, r.left - origin.left - padding),
+              y: Math.max(0, r.top - origin.top - padding),
+              width: r.width + padding * 2,
+              height: r.height + padding * 2,
+            });
+          }
+        }
+      }
+    } finally {
+      container.remove();
+    }
+  }
+  return rects;
 }
 
 const SEARCH_DEBOUNCE_MS = 200;

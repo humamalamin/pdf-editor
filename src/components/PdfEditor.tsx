@@ -29,6 +29,7 @@ import {
   Check,
   X,
   Search,
+  EyeOff,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
@@ -39,6 +40,8 @@ import { exportAnnotatedPdf, formatOf, styleOf, textBoxWidth, type Annotation } 
 import {
   SHAPE_DEFAULTS,
   SHAPE_DEFAULT_SIZE,
+  isCover,
+  isRedaction,
   isHighlight,
   isSymbol,
   type ShapeKind,
@@ -54,7 +57,7 @@ import ShapeToolbar from "@/components/ShapeToolbar";
 import { LineShape, ShapeBody, snapToAngle, type LineChangeInfo } from "@/components/ShapeView";
 import PdfPageCanvas from "@/components/PdfPageCanvas";
 import PdfTextLayer, { type TextHighlight } from "@/components/PdfTextLayer";
-import { useTextSearch, type SearchMatch } from "@/lib/textSearch";
+import { measureMatchRects, useTextSearch, type SearchMatch } from "@/lib/textSearch";
 import PageThumbnails, { THUMBNAIL_SIDEBAR_WIDTH } from "@/components/PageThumbnails";
 import FormFieldsLayer from "@/components/FormFieldsLayer";
 import { loadFormFields, type FormField, type FormValues } from "@/lib/forms";
@@ -83,6 +86,7 @@ const DUPLICATE_OFFSET = 12;
 const CLIPBOARD_MIME = "application/x-pdfeditor-annotations";
 const SNAP_THRESHOLD_PX = 6;
 const NO_HIGHLIGHTS: TextHighlight[] = [];
+const REDACT_PADDING = 1; // PDF points around each search result, so glyph edges are covered
 
 const isModifierClick = (e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) =>
   e.shiftKey || e.ctrlKey || e.metaKey;
@@ -130,6 +134,7 @@ type Draft = { page: number; kind: ShapeKind; x1: number; y1: number; x2: number
 // Labels and hints come from the dictionary (editor.shapeTools)
 const SHAPE_TOOLS: { kind: ShapeKind; icon: React.ReactNode }[] = [
   { kind: "whiteout", icon: <Eraser className="h-5 w-5" strokeWidth={1.5} /> },
+  { kind: "redact", icon: <EyeOff className="h-5 w-5" strokeWidth={1.5} /> },
   { kind: "highlight", icon: <Highlighter className="h-5 w-5" strokeWidth={1.5} /> },
   { kind: "rect", icon: <Square className="h-5 w-5" strokeWidth={1.5} /> },
   { kind: "ellipse", icon: <Circle className="h-5 w-5" strokeWidth={1.5} /> },
@@ -364,6 +369,37 @@ export default function PdfEditor() {
   const closeSearch = () => {
     setIsSearchOpen(false);
     setSearchIndex(0);
+  };
+
+  // Covers every search result with a redaction box (one undo step)
+  const [isRedactingMatches, setIsRedactingMatches] = useState(false);
+  const redactAllMatches = async () => {
+    if (!pdfDoc || searchMatches.length === 0) return;
+    setIsRedactingMatches(true);
+    try {
+      const rects = await measureMatchRects(pdfDoc, searchMatches, REDACT_PADDING);
+      const style = lastShapeStyleRef.current.redact ?? SHAPE_DEFAULTS.redact;
+      const boxes: Annotation[] = rects.map((r) => ({
+        id: crypto.randomUUID(),
+        type: "shape",
+        shape: "redact",
+        style,
+        content: "",
+        page: r.page,
+        x: r.x,
+        y: r.y,
+        width: Math.min(r.width, pageSizes[r.page - 1].width - r.x),
+        height: Math.min(r.height, pageSizes[r.page - 1].height - r.y),
+      }));
+      if (boxes.length === 0) return;
+      checkpoint();
+      setAnnotations((prev) => [...prev, ...boxes]);
+      selectOnly(null);
+    } catch (err) {
+      console.error("Failed to redact search results", err);
+    } finally {
+      setIsRedactingMatches(false);
+    }
   };
   // Content point to keep under the same screen position across a zoom change
   const zoomAnchorRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number; from: number } | null>(
@@ -1169,6 +1205,8 @@ export default function PdfEditor() {
 
   const downloadPdf = async () => {
     if (!pdfFile || !hasChanges) return;
+    const redactedPages = new Set(annotations.filter((a) => a.type === "shape" && isRedaction(a.shape)).map((a) => a.page));
+    if (redactedPages.size > 0 && !confirm(format(te.redactConfirm, { count: redactedPages.size }))) return;
     setIsExporting(true);
 
     try {
@@ -1356,7 +1394,7 @@ export default function PdfEditor() {
     const isShape = ann.type === "shape";
     const kind = ann.shape ?? "rect";
     // Flat covers keep their stacking order when selected, so text placed on top stays visible
-    const keepsStackOrder = isShape && (kind === "whiteout" || isHighlight(kind));
+    const keepsStackOrder = isShape && (isCover(kind) || isHighlight(kind));
     const lockAspect = ann.type === "image" || (isShape && isSymbol(kind));
     const handle = (
       <div className="flex h-full w-full items-center justify-center">
@@ -1926,6 +1964,15 @@ export default function PdfEditor() {
             className="rounded-lg p-1 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
           >
             <ChevronDown className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={redactAllMatches}
+            disabled={searchMatches.length === 0 || isRedactingMatches}
+            title={te.redactAllHint}
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-900/30"
+          >
+            <EyeOff className="h-4 w-4" /> {te.redactAll}
           </button>
           <button
             type="button"

@@ -1,4 +1,4 @@
-export type ShapeKind = "whiteout" | "highlight" | "rect" | "ellipse" | "line" | "check" | "cross";
+export type ShapeKind = "whiteout" | "redact" | "highlight" | "rect" | "ellipse" | "line" | "check" | "cross";
 
 export type ShapeStyle = {
   stroke: string; // #rrggbb
@@ -9,6 +9,7 @@ export type ShapeStyle = {
 
 export const SHAPE_DEFAULTS: Record<ShapeKind, ShapeStyle> = {
   whiteout: { stroke: "#ffffff", fill: "#ffffff", strokeWidth: 0, opacity: 1 },
+  redact: { stroke: "#000000", fill: "#000000", strokeWidth: 0, opacity: 1 },
   highlight: { stroke: "#fde047", fill: "#fde047", strokeWidth: 0, opacity: 0.5 },
   rect: { stroke: "#dc2626", fill: null, strokeWidth: 2, opacity: 1 },
   ellipse: { stroke: "#dc2626", fill: null, strokeWidth: 2, opacity: 1 },
@@ -20,6 +21,7 @@ export const SHAPE_DEFAULTS: Record<ShapeKind, ShapeStyle> = {
 // Size used when the user clicks instead of dragging (PDF points)
 export const SHAPE_DEFAULT_SIZE: Record<ShapeKind, { width: number; height: number }> = {
   whiteout: { width: 120, height: 24 },
+  redact: { width: 120, height: 20 },
   highlight: { width: 120, height: 16 },
   rect: { width: 120, height: 60 },
   ellipse: { width: 90, height: 60 },
@@ -30,6 +32,14 @@ export const SHAPE_DEFAULT_SIZE: Record<ShapeKind, { width: number; height: numb
 
 /** Shapes whose box keeps a 1:1 aspect ratio */
 export const isSymbol = (kind: ShapeKind) => kind === "check" || kind === "cross";
+
+/** Opaque filled boxes that hide what is under them (redaction also removes it on export) */
+export const isCover = (kind: ShapeKind) => kind === "whiteout" || kind === "redact";
+
+/** Removes the covered content for real: the page is turned into an image on export */
+export const isRedaction = (kind: ShapeKind | undefined) => kind === "redact";
+
+export const REDACT_COLORS = ["#000000", "#ffffff"];
 
 /** Flat translucent fills that sit "under" the page content via multiply blending */
 export const isHighlight = (kind: ShapeKind) => kind === "highlight";

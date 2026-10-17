@@ -558,8 +558,13 @@ export const id: Dictionary = {
     prevMatch: "Hasil sebelumnya (Shift+Enter)",
     nextMatch: "Hasil berikutnya (Enter)",
     closeSearch: "Tutup pencarian (Esc)",
+    redactAll: "Redaksi semua",
+    redactAllHint: "Tutup setiap hasil pencarian dengan kotak redaksi",
+    redactConfirm:
+      "{count} halaman berisi redaksi. Agar konten yang ditutup benar-benar terhapus, halaman tersebut akan disimpan sebagai gambar: teksnya tidak bisa diseleksi atau dicari lagi, dan kolom formulir di halaman itu dihapus. Lanjutkan?",
     shapeTools: {
       whiteout: { label: "Penutup", hint: "Tutup konten dengan kotak putih" },
+      redact: { label: "Redaksi", hint: "Hapus permanen teks atau gambar sensitif" },
       highlight: { label: "Stabilo", hint: "Tandai teks dengan stabilo" },
       rect: { label: "Persegi", hint: "Gambar kotak" },
       ellipse: { label: "Elips", hint: "Gambar lingkaran atau elips" },
@@ -585,8 +590,12 @@ export const id: Dictionary = {
     alignRight: "Rata kanan",
     cover: "Penutup",
     coverHint:
-      "Penutup hanya menutupi konten secara visual: teks aslinya masih ada di dalam PDF dan bisa disalin atau diekstrak.",
+      "Penutup hanya menutupi konten secara visual: teks aslinya masih ada di dalam PDF dan bisa disalin atau diekstrak. Gunakan Redaksi untuk menghapusnya secara permanen.",
     coverColor: "Warna penutup",
+    redact: "Redaksi",
+    redactHint:
+      "Menghapus teks dan gambar di bawah kotak ini secara permanen. Saat disimpan, halaman diubah menjadi gambar sehingga isinya tidak bisa dipulihkan.",
+    redactColor: "Warna redaksi",
     highlightColor: "Warna stabilo",
     lineColor: "Warna garis",
     thickness: "Ketebalan {width} pt",

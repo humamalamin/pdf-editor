@@ -14,7 +14,8 @@ import {
   type TextFormat,
 } from "@/lib/editorFonts";
 import { applyFormValues, type FormField, type FormValues } from "@/lib/forms";
-import { SHAPE_DEFAULTS, SYMBOL_BOX, SYMBOL_PATHS, type ShapeKind, type ShapeStyle } from "@/lib/shapes";
+import { SHAPE_DEFAULTS, SYMBOL_BOX, SYMBOL_PATHS, isRedaction, type ShapeKind, type ShapeStyle } from "@/lib/shapes";
+import { applyRedactions, removeUnreachableObjects } from "@/lib/redact";
 
 // All geometry is stored in unscaled PDF points (top-left origin); multiply by `scale` to render.
 export type Annotation = {
@@ -83,6 +84,26 @@ export async function exportAnnotatedPdf(
     return null;
   }
 
+  // Redacted pages become images. Annotations stacked below a redaction on its page are drawn
+  // first so they end up inside the image too (otherwise text placed under a redaction box would
+  // still be in the file); everything else is drawn afterwards as crisp vectors.
+  const redactions = annotations.filter((ann) => ann.type === "shape" && isRedaction(ann.shape));
+  const lastRedaction = new Map<number, number>();
+  annotations.forEach((ann, i) => {
+    if (redactions.includes(ann)) lastRedaction.set(ann.page, i);
+  });
+  const beneath = annotations.filter((ann, i) => i < (lastRedaction.get(ann.page) ?? -1) && !redactions.includes(ann));
+  const onTop = annotations.filter((ann) => !beneath.includes(ann));
+
+  await drawAnnotations(pdfDocLib, beneath, fonts);
+  await applyRedactions(pdfDocLib, redactions);
+  await drawAnnotations(pdfDocLib, onTop, fonts);
+  if (redactions.length > 0) removeUnreachableObjects(pdfDocLib);
+
+  return pdfDocLib.save();
+}
+
+async function drawAnnotations(pdfDocLib: PDFDocument, annotations: Annotation[], fonts: Map<string, PDFFont>) {
   const pages = pdfDocLib.getPages();
   for (const ann of annotations) {
     const pdfPage = pages[ann.page - 1];
@@ -127,8 +148,6 @@ export async function exportAnnotatedPdf(
       });
     }
   }
-
-  return pdfDocLib.save();
 }
 
 function drawShape(pdfPage: PDFPage, ann: Annotation, left: number, top: number) {
@@ -143,6 +162,7 @@ function drawShape(pdfPage: PDFPage, ann: Annotation, left: number, top: number)
 
   switch (kind) {
     case "whiteout":
+    case "redact":
     case "highlight":
       pdfPage.drawRectangle({
         x: left,
