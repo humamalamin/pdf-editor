@@ -41,7 +41,9 @@ export default function ToolInfoDialog({
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
-          {children}
+          {/* Sole child of its own wrapper: server-rendered children placed beside the button
+              are reconciled as a list and trip React's dev-only missing-key warning. */}
+          <div>{children}</div>
         </div>
       </dialog>
     </>

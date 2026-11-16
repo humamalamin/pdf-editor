@@ -21,6 +21,7 @@ export const id: Dictionary = {
       "PDF ke PNG",
       "PDF ke gambar",
       "JPG ke PDF",
+      "PDF ke Word",
       "nomor halaman PDF",
       "atur halaman PDF",
       "tanda tangan PDF",
@@ -198,6 +199,31 @@ export const id: Dictionary = {
           question: "Apakah kualitas gambar akan turun?",
           answer:
             "File JPG dan PNG yang posisinya tegak dimasukkan apa adanya tanpa kompresi ulang. Format lain dan foto ponsel yang terputar dikonversi dengan kualitas tinggi.",
+        },
+      ],
+    },
+    "pdf-to-word": {
+      label: "PDF ke Word",
+      title: "Ubah PDF ke Word (DOCX) Online",
+      heading: "Ubah PDF Menjadi Dokumen Word yang Bisa Diedit",
+      description:
+        "Ubah teks PDF menjadi dokumen Word (.docx) yang bisa diedit langsung di browser. Paragraf, judul, huruf tebal, miring, dan gambar tetap dipertahankan, tanpa mengunggah ke server.",
+      steps: [
+        "Buka file PDF dari perangkat Anda.",
+        "Klik Ubah ke Word.",
+        "Buka file .docx yang terunduh di Microsoft Word, Google Docs, atau LibreOffice lalu edit.",
+      ],
+      faq: [
+        privacyFaq,
+        {
+          question: "Apakah dokumen Word akan sama persis dengan PDF-nya?",
+          answer:
+            "Teks, paragraf, judul, huruf tebal, miring, dan gambar dipertahankan, jadi dokumen seperti surat, laporan, dan artikel terkonversi dengan baik. Gambar diletakkan di antara paragraf, bukan di posisi persisnya, sedangkan tabel dan layout beberapa kolom belum dibuat ulang: isi tabel keluar sebagai teks biasa.",
+        },
+        {
+          question: "Apakah PDF hasil scan bisa dikonversi?",
+          answer:
+            "Belum. PDF hasil scan adalah gambar halaman tanpa teks yang bisa dipilih, jadi tidak ada teks yang bisa dimasukkan ke dokumen Word. PDF seperti ini perlu OCR terlebih dahulu.",
         },
       ],
     },
@@ -635,6 +661,21 @@ export const id: Dictionary = {
     removeBackground: "Hapus latar belakang putih",
     saveOnDevice: "Simpan di perangkat ini",
     insert: "Sisipkan",
+  },
+  pdfToWord: {
+    title: "PDF ke Word",
+    subtitle: "Ubah teks PDF menjadi dokumen Word yang bisa diedit.",
+    emptyTitle: "Pilih PDF yang ingin dikonversi",
+    emptyText: "Paling cocok untuk dokumen teks seperti surat, laporan, dan artikel.",
+    openError: "PDF ini tidak bisa dibuka. Mungkin file-nya rusak.",
+    keepsTitle: "Yang dipertahankan",
+    keepsText: "Teks, paragraf, judul, huruf tebal dan miring, ukuran font, gambar, serta satu halaman Word untuk setiap halaman PDF.",
+    limitsTitle: "Belum didukung",
+    limitsText: "Tabel (isinya menjadi teks biasa), layout beberapa kolom, teks yang mengelilingi gambar, dan PDF hasil scan.",
+    converting: "Membaca halaman {done} dari {total}...",
+    download: "Ubah ke Word",
+    noText: "PDF ini tidak memiliki teks yang bisa dipilih, kemungkinan hasil scan. PDF hasil scan belum bisa dikonversi.",
+    failed: "Gagal mengonversi PDF. Silakan coba lagi.",
   },
   pageNumbers: {
     title: "Tambah Nomor Halaman",

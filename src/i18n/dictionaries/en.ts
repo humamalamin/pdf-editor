@@ -18,6 +18,7 @@ export const en = {
       "PDF to PNG",
       "PDF to image",
       "JPG to PDF",
+      "PDF to Word",
       "add page numbers to PDF",
       "organize PDF pages",
       "sign PDF",
@@ -187,6 +188,31 @@ export const en = {
           question: "Will my images lose quality?",
           answer:
             "Upright JPG and PNG files are embedded as they are, without recompression. Other formats and rotated phone photos are converted at high quality.",
+        },
+      ],
+    },
+    "pdf-to-word": {
+      label: "PDF to Word",
+      title: "Convert PDF to Word (DOCX) Online",
+      heading: "Convert PDF to an Editable Word Document",
+      description:
+        "Turn the text of a PDF into an editable Word (.docx) document in your browser. Paragraphs, headings, bold, italic, and images are kept, with no upload to any server.",
+      steps: [
+        "Open a PDF from your device.",
+        "Click Convert to Word.",
+        "Open the downloaded .docx file in Microsoft Word, Google Docs, or LibreOffice and edit it.",
+      ],
+      faq: [
+        privacyFaq,
+        {
+          question: "Will the Word document look exactly like the PDF?",
+          answer:
+            "Text, paragraphs, headings, bold, italic, and images are kept, so documents such as letters, reports, and articles convert well. Images are placed between paragraphs rather than at their exact position, and tables and multi-column layouts are not recreated yet: table cells come out as plain text.",
+        },
+        {
+          question: "Can I convert a scanned PDF?",
+          answer:
+            "Not yet. A scanned PDF is a picture of a page with no selectable text, so there is nothing to put into the Word document. It needs OCR first.",
         },
       ],
     },
@@ -623,6 +649,21 @@ export const en = {
     removeBackground: "Remove white background",
     saveOnDevice: "Save on this device",
     insert: "Insert",
+  },
+  pdfToWord: {
+    title: "PDF to Word",
+    subtitle: "Turn the text of a PDF into an editable Word document.",
+    emptyTitle: "Select a PDF to convert",
+    emptyText: "Works best with text documents such as letters, reports, and articles.",
+    openError: "Could not open this PDF. It may be damaged.",
+    keepsTitle: "What is kept",
+    keepsText: "Text, paragraphs, headings, bold and italic, font sizes, images, and one Word page per PDF page.",
+    limitsTitle: "Not supported yet",
+    limitsText: "Tables (cells become plain text), multi-column layouts, text wrapped around images, and scanned PDFs.",
+    converting: "Reading page {done} of {total}...",
+    download: "Convert to Word",
+    noText: "This PDF has no selectable text, so it is probably a scan. Scanned PDFs cannot be converted yet.",
+    failed: "Failed to convert the PDF. Please try again.",
   },
   pageNumbers: {
     title: "Add Page Numbers",
