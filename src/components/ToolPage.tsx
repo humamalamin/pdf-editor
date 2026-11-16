@@ -35,6 +35,36 @@ export default function ToolPage({ toolId, locale }: Readonly<{ toolId: ToolId; 
     },
   ];
 
+  const info = (
+    <section className="space-y-6">
+      <h2 className="pr-8 text-2xl font-bold text-slate-900 dark:text-white">
+        {tool.heading}
+      </h2>
+      <p>{tool.description}</p>
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+        {dict.toolPage.howItWorks}
+      </h2>
+      <ol className="list-decimal space-y-1 pl-5">
+        {tool.steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+        {dict.toolPage.faq}
+      </h2>
+      <dl className="space-y-4">
+        {tool.faq.map((item) => (
+          <div key={item.question}>
+            <dt className="font-medium text-slate-900 dark:text-white">
+              {item.question}
+            </dt>
+            <dd>{item.answer}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+
   return (
     <>
       <script
@@ -43,36 +73,12 @@ export default function ToolPage({ toolId, locale }: Readonly<{ toolId: ToolId; 
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <PdfEditorApp tool={toolId} locale={locale} dict={dict} />
-      <section className="bg-white px-6 py-12 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-        <div className="mx-auto max-w-3xl space-y-6">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {tool.heading}
-          </h2>
-          <p>{tool.description}</p>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {dict.toolPage.howItWorks}
-          </h2>
-          <ol className="list-decimal space-y-1 pl-5">
-            {tool.steps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {dict.toolPage.faq}
-          </h2>
-          <dl className="space-y-4">
-            {tool.faq.map((item) => (
-              <div key={item.question}>
-                <dt className="font-medium text-slate-900 dark:text-white">
-                  {item.question}
-                </dt>
-                <dd>{item.answer}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
+      <PdfEditorApp
+        tool={toolId}
+        locale={locale}
+        dict={dict}
+        info={info}
+      />
     </>
   );
 }

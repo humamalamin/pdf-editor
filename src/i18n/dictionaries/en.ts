@@ -31,6 +31,8 @@ export const en = {
   toolPage: {
     howItWorks: "How it works",
     faq: "Frequently asked questions",
+    info: "About this tool",
+    close: "Close",
     browserRequirements: "Requires JavaScript and a modern web browser",
   },
   privacy: {

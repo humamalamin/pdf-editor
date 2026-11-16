@@ -33,6 +33,8 @@ export const id: Dictionary = {
   toolPage: {
     howItWorks: "Cara menggunakan",
     faq: "Pertanyaan yang sering diajukan",
+    info: "Tentang alat ini",
+    close: "Tutup",
     browserRequirements: "Membutuhkan JavaScript dan browser modern",
   },
   privacy: {

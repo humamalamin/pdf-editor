@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { PenTool, Combine, Scissors, Layout, Minimize2, Stamp, Lock, FileImage, Images, Hash } from "lucide-react";
 import { Globe } from "lucide-react";
@@ -9,6 +10,7 @@ import { I18nProvider } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { toolIds, toolPath, type ToolId } from "@/lib/tools";
 import LanguageSuggestion from "@/components/LanguageSuggestion";
+import ToolInfoDialog from "@/components/ToolInfoDialog";
 
 const PdfEditor = dynamic(() => import("@/components/PdfEditor"), { ssr: false });
 const PdfMerge = dynamic(() => import("@/components/PdfMerge"), { ssr: false });
@@ -57,7 +59,8 @@ export default function PdfEditorApp({
   tool,
   locale,
   dict,
-}: Readonly<{ tool: ToolId; locale: Locale; dict: Dictionary }>) {
+  info,
+}: Readonly<{ tool: ToolId; locale: Locale; dict: Dictionary; info: ReactNode }>) {
   return (
     <I18nProvider locale={locale} dict={dict}>
       <main className="flex h-dvh w-full shrink-0 flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -98,6 +101,9 @@ export default function PdfEditorApp({
 
           <div className="flex shrink-0 items-center gap-3">
             <div className="hidden text-xs font-medium text-slate-400 xl:block">{dict.nav.clientSide}</div>
+            <ToolInfoDialog label={dict.toolPage.info} closeLabel={dict.toolPage.close}>
+              {info}
+            </ToolInfoDialog>
             <div
               role="group"
               aria-label={dict.nav.language}
