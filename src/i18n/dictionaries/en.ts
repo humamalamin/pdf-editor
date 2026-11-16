@@ -15,6 +15,8 @@ export const en = {
       "split PDF",
       "compress PDF",
       "PDF to JPG",
+      "PDF to PNG",
+      "PDF to image",
       "JPG to PDF",
       "add page numbers to PDF",
       "organize PDF pages",
@@ -139,14 +141,14 @@ export const en = {
       ],
     },
     "pdf-to-image": {
-      label: "PDF to JPG",
-      title: "Convert PDF to JPG or PNG Online",
-      heading: "Convert PDF Pages to JPG or PNG Images",
+      label: "PDF to Image",
+      title: "Convert PDF to JPG, PNG, or WebP Online",
+      heading: "Convert PDF Pages to JPG, PNG, or WebP Images",
       description:
-        "Turn PDF pages into high-quality JPG or PNG images in your browser. Choose the pages and resolution, with no upload to any server.",
+        "Turn PDF pages into high-quality JPG, PNG, or WebP images in your browser. Choose the pages and resolution, with no upload to any server.",
       steps: [
         "Open a PDF from your device.",
-        "Select the pages, then pick JPG or PNG and a resolution.",
+        "Select the pages, then pick JPG, PNG, or WebP and a resolution.",
         "Download a single image, or a ZIP file when you convert several pages.",
       ],
       faq: [
@@ -157,9 +159,9 @@ export const en = {
             "Medium (150 DPI) is sharp on screens and keeps files small. Choose High (300 DPI) if you plan to print the images.",
         },
         {
-          question: "Should I pick JPG or PNG?",
+          question: "Should I pick JPG, PNG, or WebP?",
           answer:
-            "JPG gives smaller files and suits scanned pages and photos. PNG is lossless, so text and lines stay crisp, but files are larger.",
+            "JPG gives small files that open everywhere and suits scanned pages and photos. PNG is lossless, so text and lines stay crisp, but files are larger. WebP is usually smaller than JPG at the same quality and is ideal for websites, but some older apps cannot open it.",
         },
       ],
     },
@@ -314,8 +316,8 @@ export const en = {
     failed: "Failed to split PDF. Please try again.",
   },
   pdfToImage: {
-    title: "PDF to JPG",
-    subtitle: "Turn each PDF page into a JPG or PNG image.",
+    title: "PDF to Image",
+    subtitle: "Turn each PDF page into a JPG, PNG, or WebP image.",
     emptyTitle: "Select a PDF to convert",
     emptyText: "Pick the pages you need, then download them as images.",
     openError: "Could not open this PDF. It may be damaged.",

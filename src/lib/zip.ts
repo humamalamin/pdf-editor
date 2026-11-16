@@ -1,4 +1,4 @@
-// Minimal ZIP writer (store only, no compression). JPG and PNG are already compressed,
+// Minimal ZIP writer (store only, no compression). JPG, PNG, and WebP are already compressed,
 // so deflating them again would cost time for almost no gain.
 
 export type ZipEntry = { name: string; blob: Blob };

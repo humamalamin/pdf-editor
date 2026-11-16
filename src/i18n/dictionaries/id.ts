@@ -18,6 +18,8 @@ export const id: Dictionary = {
       "kompres PDF",
       "kecilkan ukuran PDF",
       "PDF ke JPG",
+      "PDF ke PNG",
+      "PDF ke gambar",
       "JPG ke PDF",
       "nomor halaman PDF",
       "atur halaman PDF",
@@ -150,14 +152,14 @@ export const id: Dictionary = {
       ],
     },
     "pdf-to-image": {
-      label: "PDF ke JPG",
-      title: "Ubah PDF ke JPG atau PNG Online",
-      heading: "Ubah Halaman PDF Menjadi Gambar JPG atau PNG",
+      label: "PDF ke Gambar",
+      title: "Ubah PDF ke JPG, PNG, atau WebP Online",
+      heading: "Ubah Halaman PDF Menjadi Gambar JPG, PNG, atau WebP",
       description:
-        "Ubah halaman PDF menjadi gambar JPG atau PNG berkualitas tinggi di browser. Pilih halaman dan resolusi, tanpa mengunggah ke server.",
+        "Ubah halaman PDF menjadi gambar JPG, PNG, atau WebP berkualitas tinggi di browser. Pilih halaman dan resolusi, tanpa mengunggah ke server.",
       steps: [
         "Buka file PDF dari perangkat Anda.",
-        "Pilih halaman, lalu tentukan format JPG atau PNG dan resolusinya.",
+        "Pilih halaman, lalu tentukan format JPG, PNG, atau WebP dan resolusinya.",
         "Unduh satu gambar, atau file ZIP jika Anda mengonversi beberapa halaman.",
       ],
       faq: [
@@ -168,9 +170,9 @@ export const id: Dictionary = {
             "Sedang (150 DPI) cukup tajam untuk layar dan ukurannya kecil. Pilih Tinggi (300 DPI) jika gambar akan dicetak.",
         },
         {
-          question: "Sebaiknya pilih JPG atau PNG?",
+          question: "Sebaiknya pilih JPG, PNG, atau WebP?",
           answer:
-            "JPG menghasilkan file lebih kecil dan cocok untuk hasil scan dan foto. PNG tanpa kompresi lossy, sehingga teks dan garis tetap tajam, tetapi ukurannya lebih besar.",
+            "JPG menghasilkan file kecil yang bisa dibuka di mana saja, cocok untuk hasil scan dan foto. PNG tanpa kompresi lossy, sehingga teks dan garis tetap tajam, tetapi ukurannya lebih besar. WebP biasanya lebih kecil dari JPG pada kualitas yang sama dan ideal untuk website, tetapi beberapa aplikasi lama belum bisa membukanya.",
         },
       ],
     },
@@ -325,8 +327,8 @@ export const id: Dictionary = {
     failed: "Gagal memisahkan PDF. Silakan coba lagi.",
   },
   pdfToImage: {
-    title: "PDF ke JPG",
-    subtitle: "Ubah setiap halaman PDF menjadi gambar JPG atau PNG.",
+    title: "PDF ke Gambar",
+    subtitle: "Ubah setiap halaman PDF menjadi gambar JPG, PNG, atau WebP.",
     emptyTitle: "Pilih PDF yang ingin dikonversi",
     emptyText: "Pilih halaman yang Anda perlukan, lalu unduh sebagai gambar.",
     openError: "PDF ini tidak bisa dibuka. Mungkin file-nya rusak.",

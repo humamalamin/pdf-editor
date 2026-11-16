@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { FileImage, FileText, Download, CheckCircle2, AlertTriangle } from "lucide-react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { pdfjsLib } from "@/lib/pdfjs";
-import { ConvertCancelledError, pdfToImages, type ImageFormat } from "@/lib/convert";
+import { ConvertCancelledError, pdfToImages, supportsWebpEncoding, type ImageFormat } from "@/lib/convert";
 import { createZip } from "@/lib/zip";
 import { cn, downloadBlob, formatSize } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
@@ -30,6 +30,7 @@ export default function PdfToImage() {
   const [format, setFormat] = useState<ImageFormat>("jpg");
   const [dpi, setDpi] = useState(150);
   const [quality, setQuality] = useState(90);
+  const [formats, setFormats] = useState<ImageFormat[]>(["jpg", "png"]);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
@@ -69,6 +70,10 @@ export default function PdfToImage() {
   }, [pdf]);
 
   useEffect(() => () => void pdf?.destroy(), [pdf]);
+
+  useEffect(() => {
+    if (supportsWebpEncoding()) setFormats(["jpg", "png", "webp"]);
+  }, []);
 
   const handleFile = async (selectedFile: File | undefined) => {
     if (!selectedFile || selectedFile.type !== "application/pdf") return;
@@ -225,8 +230,8 @@ export default function PdfToImage() {
             <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3 dark:border-slate-800 dark:bg-slate-900">
               <fieldset>
                 <legend className="mb-2 text-sm font-bold text-slate-700 dark:text-slate-200">{tt.format}</legend>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["jpg", "png"] as const).map((value) => (
+                <div className={cn("grid gap-2", formats.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
+                  {formats.map((value) => (
                     <OptionButton key={value} active={format === value} onClick={() => setFormat(value)}>
                       {value.toUpperCase()}
                     </OptionButton>
@@ -243,7 +248,7 @@ export default function PdfToImage() {
                   ))}
                 </div>
               </fieldset>
-              {format === "jpg" ? (
+              {format !== "png" ? (
                 <label className="block">
                   <span className="flex justify-between text-sm font-bold text-slate-700 dark:text-slate-200">
                     {tt.quality}

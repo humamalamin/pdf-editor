@@ -3,7 +3,13 @@ import type { PDFDocumentProxy } from "pdfjs-dist";
 
 // ---------- PDF to images ----------
 
-export type ImageFormat = "jpg" | "png";
+export type ImageFormat = "jpg" | "png" | "webp";
+
+const MIME_TYPES: Record<ImageFormat, string> = {
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
 
 /** Safari refuses canvases above roughly 16.7M pixels, so stay below that. */
 const MAX_CANVAS_PIXELS = 16_000_000;
@@ -20,7 +26,14 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
   );
 }
 
-/** Renders one page (1-based) at the given DPI and encodes it as JPG or PNG. */
+/** Browsers that cannot encode WebP (older Safari) silently fall back to PNG. */
+export function supportsWebpEncoding() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 1;
+  return canvas.toDataURL("image/webp").startsWith("data:image/webp");
+}
+
+/** Renders one page (1-based) at the given DPI and encodes it as JPG, PNG, or WebP. */
 export async function renderPageImage(
   pdf: PDFDocumentProxy,
   pageNumber: number,
@@ -39,13 +52,16 @@ export async function renderPageImage(
   canvas.height = Math.floor(viewport.height);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is not available");
-  // JPEG has no transparency, and PNG pages look wrong on dark viewers without a background.
+  // JPEG has no transparency, and PNG/WebP pages look wrong on dark viewers without a background.
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   try {
     await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-    return await canvasToBlob(canvas, format === "jpg" ? "image/jpeg" : "image/png", quality);
+    const blob = await canvasToBlob(canvas, MIME_TYPES[format], quality);
+    // Never hand back a file whose contents do not match its extension.
+    if (blob.type !== MIME_TYPES[format]) throw new Error(`Browser cannot encode ${format}`);
+    return blob;
   } finally {
     page.cleanup();
     canvas.width = 0;
