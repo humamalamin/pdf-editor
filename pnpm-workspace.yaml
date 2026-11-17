@@ -1,0 +1,9 @@
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+minimumReleaseAge: 20160 # minutes (14 days): skip freshly published versions
+# next 16.4.5 is a security release, taken before it reached the 14-day age.
+minimumReleaseAgeExclude:
+  - next
+  - "@next/*"
+  - eslint-config-next

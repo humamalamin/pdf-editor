@@ -30,7 +30,10 @@ export default function PdfToImage() {
   const [format, setFormat] = useState<ImageFormat>("jpg");
   const [dpi, setDpi] = useState(150);
   const [quality, setQuality] = useState(90);
-  const [formats, setFormats] = useState<ImageFormat[]>(["jpg", "png"]);
+  // Client-only (loaded with ssr: false), so the encoder check can run during the first render.
+  const [formats] = useState<ImageFormat[]>(() =>
+    supportsWebpEncoding() ? ["jpg", "png", "webp"] : ["jpg", "png"],
+  );
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
@@ -70,10 +73,6 @@ export default function PdfToImage() {
   }, [pdf]);
 
   useEffect(() => () => void pdf?.destroy(), [pdf]);
-
-  useEffect(() => {
-    if (supportsWebpEncoding()) setFormats(["jpg", "png", "webp"]);
-  }, []);
 
   const handleFile = async (selectedFile: File | undefined) => {
     if (!selectedFile || selectedFile.type !== "application/pdf") return;

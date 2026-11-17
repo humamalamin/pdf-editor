@@ -143,7 +143,7 @@ export function LineShape({
   const p1 = { x: x1 * scale - left, y: y1 * scale - top };
   const p2 = { x: x2 * scale - left, y: y2 * scale - top };
 
-  const startDrag = (mode: Drag["mode"]) => (e: React.PointerEvent) => {
+  const startDrag = (mode: Drag["mode"], e: React.PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
     onPress(e);
@@ -191,7 +191,7 @@ export function LineShape({
     <div
       className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-crosshair touch-none"
       style={{ left: p.x, top: p.y }}
-      onPointerDown={startDrag(mode)}
+      onPointerDown={(e) => startDrag(mode, e)}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
@@ -230,7 +230,7 @@ export function LineShape({
           strokeWidth={HIT_PADDING * 2}
           strokeLinecap="round"
           className="pointer-events-auto cursor-move touch-none"
-          onPointerDown={startDrag("move")}
+          onPointerDown={(e) => startDrag("move", e)}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
         />

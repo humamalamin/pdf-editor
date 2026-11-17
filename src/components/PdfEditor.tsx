@@ -274,7 +274,7 @@ export default function PdfEditor() {
   const shapeMenuRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   // Pen stroke being drawn (page points)
-  const [inkDraft, setInkDraft] = useState<{ page: number; points: InkPoint[] } | null>(null);
+  const [inkDraft, setInkDraft] = useState<{ page: number; points: InkPoint[]; style: ShapeStyle } | null>(null);
   const lastShapeStyleRef = useRef<Partial<Record<ShapeKind, ShapeStyle>>>({});
   const [isSignOpen, setIsSignOpen] = useState(false);
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -428,14 +428,7 @@ export default function PdfEditor() {
 
   // Load PDF and every page's size up front, so the full document can be laid out before rendering
   useEffect(() => {
-    if (!pdfFile) {
-      setPdfDoc(null);
-      setPageSizes([]);
-      setFormFields([]);
-      setFormValues({});
-      setInitialFormValues({});
-      return;
-    }
+    if (!pdfFile) return;
 
     let cancelled = false;
     const loadPdf = async () => {
@@ -645,6 +638,10 @@ export default function PdfEditor() {
     setAutosaveStatus("idle");
     setPdfFile(null);
     setPdfDoc(null);
+    setPageSizes([]);
+    setFormFields([]);
+    setFormValues({});
+    setInitialFormValues({});
     resetAnnotations([]);
     setTool(null);
     selectOnly(null);
@@ -921,7 +918,7 @@ export default function PdfEditor() {
     const p = pointInPage(e, page);
     selectOnly(null);
     if (tool === "ink") {
-      setInkDraft({ page, points: [[p.x, p.y]] });
+      setInkDraft({ page, points: [[p.x, p.y]], style: lastShapeStyleRef.current.ink ?? SHAPE_DEFAULTS.ink });
       return;
     }
     setDraft({ page, kind: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y });
@@ -937,7 +934,7 @@ export default function PdfEditor() {
         const [lx, ly] = points[points.length - 1];
         if (Math.hypot(p.x - lx, p.y - ly) >= MIN_POINT_DISTANCE) points.push([p.x, p.y]);
       }
-      if (points.length !== inkDraft.points.length) setInkDraft({ page, points });
+      if (points.length !== inkDraft.points.length) setInkDraft({ ...inkDraft, points });
       return;
     }
     if (marquee?.page === page) {
@@ -957,7 +954,7 @@ export default function PdfEditor() {
 
   const handlePagePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (inkDraft) {
-      const style = lastShapeStyleRef.current.ink ?? SHAPE_DEFAULTS.ink;
+      const { style } = inkDraft;
       const stroke: Annotation = {
         id: crypto.randomUUID(),
         type: "shape",
@@ -1688,8 +1685,7 @@ export default function PdfEditor() {
   );
 
   // Live preview of the shape being dragged out
-  const renderInkDraft = (points: InkPoint[]) => {
-    const style = lastShapeStyleRef.current.ink ?? SHAPE_DEFAULTS.ink;
+  const renderInkDraft = (points: InkPoint[], style: ShapeStyle) => {
     return (
       <svg className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
         <path
@@ -1874,6 +1870,9 @@ export default function PdfEditor() {
         <div ref={scrollRef} data-scroll-root onScroll={updateCurrentPage} className="hide-scrollbar relative flex-1 overflow-auto pt-36 pb-20 px-4">
           <div className="flex min-h-full min-w-max flex-col items-center gap-6">
             {pdfDoc &&
+              // renderAnnotation/renderLine only touch refs inside the event handlers they create,
+              // never while rendering, but the compiler cannot tell those closures apart.
+              // eslint-disable-next-line react-hooks/refs
               pageSizes.map((size, i) => {
                 const page = i + 1;
                 const widthPx = size.width * scale;
@@ -1923,7 +1922,7 @@ export default function PdfEditor() {
                       .filter((a) => a.page === page)
                       .map((ann) => (ann.shape === "line" ? renderLine(ann, size) : renderAnnotation(ann, widthPx)))}
                     {draft?.page === page && renderDraft(draft)}
-                    {inkDraft?.page === page && renderInkDraft(inkDraft.points)}
+                    {inkDraft?.page === page && renderInkDraft(inkDraft.points, inkDraft.style)}
                   {guides?.page === page &&
                     guides.lines.map((g) => {
                       const vertical = g.orientation === "vertical";
