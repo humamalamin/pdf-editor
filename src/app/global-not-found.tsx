@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getDictionary } from "@/i18n/dictionaries";
+import { fontVariables } from "@/lib/fonts";
 import { siteConfig } from "@/lib/seo";
 import "./globals.css";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 // There is no single root layout to inherit from, so this page shows both languages.
 export default function GlobalNotFound() {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className={`${fontVariables} h-full antialiased`}>
       <body className="flex min-h-full flex-col items-center justify-center gap-8 bg-slate-50 p-6 text-center dark:bg-slate-950">
         <p className="text-6xl font-bold text-blue-600">404</p>
         <div className="grid gap-8 sm:grid-cols-2">

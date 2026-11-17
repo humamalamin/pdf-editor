@@ -1,21 +1,67 @@
 @import "tailwindcss";
 
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
+/* The revamp design is light-only. `dark:` utilities now only apply under a `.dark` class,
+   which nothing sets, so the OS dark preference no longer restyles the app. */
+@custom-variant dark (&:where(.dark, .dark *));
 
-@layer base {
-  :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: #0f172a;
-      --foreground: #f8fafc;
-    }
-  }
+/* Brand tokens from the revamp design: paper ground, ink text, marker-yellow accent */
+@theme {
+  --color-background: #f5f4f0;
+  --color-foreground: #15171c;
+
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --color-paper: #f5f4f0;
+  --color-paper-soft: #fbfaf7;
+  --color-surface: #ffffff;
+  --color-canvas: #e9e7e1;
+  --color-ink: #15171c;
+  --color-ink-soft: #3d4047;
+  --color-muted: #5a5e66;
+  --color-line: #dad8d1;
+  --color-line-strong: #b9b5aa;
+  --color-link: #2346c8;
+  --color-night: #15171c;
+  --color-marker: #ffe15a;
+  --color-tint-blue: #dce3fa;
+
+  /* Existing components are written with slate/blue utilities. Remapping the palette
+     restyles every tool at once: slate becomes the design's warm neutrals, and the
+     accent scales (blue, purple, orange) become ink for actions and marker yellow for
+     selected states. Red, amber and emerald keep their meaning for errors and success. */
+  --color-slate-50: #f5f4f0;
+  --color-slate-100: #eceae4;
+  --color-slate-200: #dad8d1;
+  --color-slate-300: #cfccc3;
+  --color-slate-400: #7d8088;
+  --color-slate-500: #5a5e66;
+  --color-slate-600: #3d4047;
+  --color-slate-700: #2a2c31;
+  --color-slate-800: #15171c;
+  --color-slate-900: #15171c;
+  --color-slate-950: #0b0c0f;
+
+  --color-blue-50: #fff8d6;
+  --color-blue-100: #fff0a8;
+  --color-blue-200: #f0dc7a;
+  --color-blue-300: #e6c93f;
+  --color-blue-400: #2346c8;
+  --color-blue-500: #2346c8;
+  --color-blue-600: #15171c;
+  --color-blue-700: #33363d;
+  --color-blue-800: #15171c;
+  --color-blue-900: #15171c;
+
+  --color-purple-50: #fff8d6;
+  --color-purple-500: #15171c;
+  --color-purple-600: #15171c;
+  --color-purple-700: #33363d;
+
+  --color-orange-50: #fff8d6;
+  --color-orange-500: #15171c;
+  --color-orange-600: #15171c;
+  --color-orange-700: #33363d;
 }
 
 /* Same font files are embedded into the exported PDF (src/lib/editorFonts.ts), so on-screen text matches the output */
@@ -110,9 +156,9 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-foreground);
+  background: var(--color-background);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

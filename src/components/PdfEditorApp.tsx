@@ -3,14 +3,14 @@
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { PenTool, Combine, Scissors, Layout, Minimize2, Stamp, Lock, FileImage, Images, Hash, FileType } from "lucide-react";
-import { Globe } from "lucide-react";
 import { locales, type Locale } from "@/i18n/config";
 import { I18nProvider } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries/en";
-import { toolIds, toolPath, type ToolId } from "@/lib/tools";
+import { toolPath, type ToolId } from "@/lib/tools";
 import LanguageSuggestion from "@/components/LanguageSuggestion";
 import ToolInfoDialog from "@/components/ToolInfoDialog";
+import BrandLogo from "@/components/BrandLogo";
+import ToolsMenu from "@/components/ToolsMenu";
 
 const PdfEditor = dynamic(() => import("@/components/PdfEditor"), { ssr: false });
 const PdfMerge = dynamic(() => import("@/components/PdfMerge"), { ssr: false });
@@ -46,20 +46,6 @@ const PdfProtect = dynamic(() => import("@/components/PdfProtect"), {
   ssr: false,
 });
 
-const icons = {
-  edit: PenTool,
-  organize: Layout,
-  compress: Minimize2,
-  merge: Combine,
-  split: Scissors,
-  "pdf-to-image": FileImage,
-  "image-to-pdf": Images,
-  "pdf-to-word": FileType,
-  "page-numbers": Hash,
-  watermark: Stamp,
-  protect: Lock,
-} as const;
-
 export default function PdfEditorApp({
   tool,
   locale,
@@ -68,72 +54,45 @@ export default function PdfEditorApp({
 }: Readonly<{ tool: ToolId; locale: Locale; dict: Dictionary; info: ReactNode }>) {
   return (
     <I18nProvider locale={locale} dict={dict}>
-      <main className="flex h-dvh w-full shrink-0 flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <main className="flex h-dvh w-full shrink-0 flex-col overflow-hidden bg-paper">
         {locale === "en" && <LanguageSuggestion href={toolPath(tool, "id")} />}
-        <nav className="z-[100] flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-3 sm:px-8 dark:border-slate-800 dark:bg-slate-900">
-          <Link href={toolPath("edit", locale)} className="flex shrink-0 items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-md shadow-blue-600/20">
-              <PenTool className="h-4 w-4" aria-hidden="true" />
+        {/* The home/editor route brings its own header: the landing menu, or the editor's top bar */}
+        {tool !== "edit" && (
+        <header className="relative z-[100] border-b border-line bg-paper text-ink">
+          <div className="mx-auto flex h-[60px] w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6">
+            <div className="flex min-w-0 items-center gap-3 sm:gap-6">
+              <BrandLogo href={toolPath("edit", locale)} compact />
+              <ToolsMenu current={tool} />
             </div>
-            <span className="hidden text-lg font-bold tracking-tight text-slate-800 sm:inline dark:text-white">
-              PDF<span className="text-blue-600">Editor</span>
-            </span>
-          </Link>
-
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-slate-800/50">
-            {toolIds.map((id) => {
-              const Icon = icons[id];
-              const active = id === tool;
-              const label = dict.tools[id].label;
-              return (
-                <Link
-                  key={id}
-                  href={toolPath(id, locale)}
-                  aria-label={label}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all sm:px-4 ${
-                    active
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-white"
-                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">{label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-3">
-            <div className="hidden text-xs font-medium text-slate-400 xl:block">{dict.nav.clientSide}</div>
-            <ToolInfoDialog label={dict.toolPage.info} closeLabel={dict.toolPage.close}>
-              {info}
-            </ToolInfoDialog>
-            <div
-              role="group"
-              aria-label={dict.nav.language}
-              className="flex items-center gap-0.5 rounded-lg bg-slate-100 p-0.5 text-xs font-bold dark:bg-slate-800/50"
-            >
-              <Globe className="mx-1 h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
-              {locales.map((code) => (
-                <Link
-                  key={code}
-                  href={toolPath(tool, code)}
-                  hrefLang={code}
-                  lang={code}
-                  aria-current={code === locale ? "true" : undefined}
-                  className={`rounded-md px-2 py-1 uppercase transition-colors ${
-                    code === locale
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-white"
-                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                  }`}
-                >
-                  {code}
-                </Link>
-              ))}
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="hidden font-mono text-xs text-muted xl:block">{dict.nav.clientSide}</span>
+              <ToolInfoDialog label={dict.toolPage.info} closeLabel={dict.toolPage.close}>
+                {info}
+              </ToolInfoDialog>
+              <div
+                role="group"
+                aria-label={dict.nav.language}
+                className="flex items-center gap-0.5 rounded-lg border border-line bg-surface p-0.5 text-xs font-bold"
+              >
+                {locales.map((code) => (
+                  <Link
+                    key={code}
+                    href={toolPath(tool, code)}
+                    hrefLang={code}
+                    lang={code}
+                    aria-current={code === locale ? "true" : undefined}
+                    className={`rounded-md px-2.5 py-1.5 uppercase transition-colors ${
+                      code === locale ? "bg-ink text-paper" : "text-muted hover:text-ink"
+                    }`}
+                  >
+                    {code}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
-        </nav>
+        </header>
+        )}
 
         <div className="flex-1 overflow-hidden">
           {tool === "edit" && <PdfEditor />}

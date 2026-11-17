@@ -1,3 +1,5 @@
+import type { ToolId } from "@/lib/tools";
+
 const privacyFaq = {
   question: "Are my PDF files uploaded to a server?",
   answer: "No. All processing happens locally in your browser, so your documents never leave your device.",
@@ -41,6 +43,67 @@ export const en = {
   privacy: {
     note: "Files are never uploaded. Everything is processed on your device.",
   },
+  home: {
+    menu: {
+      label: "Main navigation",
+      tools: "All tools",
+      how: "How it works",
+      privacy: "File safety",
+      faq: "Q&A",
+      open: "Open menu",
+      close: "Close menu",
+    },
+    eyebrow: "Online PDF editor · Free",
+    heroTitle: "Edit PDFs without the",
+    heroHighlight: "hassle.",
+    heroText:
+      "Edit text, sign, merge, or shrink PDF files right in your browser. Nothing to install, nothing to upload.",
+    heroPoints: ["Works on phone & laptop", "Files never leave your device"],
+    dropTitle: "Drop a PDF here",
+    dropOr: "or",
+    chooseFile: "Choose a file from your device",
+    dropNote: "PDF · opens straight in the editor",
+    quickTitle: "Need something else? Go straight to:",
+    quickTools: ["merge", "compress", "split", "image-to-pdf"] as ToolId[],
+    toolsTitle: "All tools",
+    toolsText: "Grouped by what you want to do.",
+    filterLabel: "Filter by category",
+    categories: {
+      all: "All",
+      edit: "Edit & sign",
+      pages: "Arrange pages",
+      convert: "Convert",
+      secure: "Shrink & protect",
+    },
+    toolBlurbs: {
+      edit: "Fix text, add text and images, sign, highlight, and fill in forms.",
+      "page-numbers": "Number pages in the position and format you want.",
+      merge: "Combine several files into one, in any order.",
+      split: "Pull out specific pages into a new PDF.",
+      organize: "Reorder, rotate, and delete pages.",
+      "pdf-to-image": "Turn each page into a JPG, PNG, or WebP image.",
+      "image-to-pdf": "Turn phone photos of documents into one PDF.",
+      "pdf-to-word": "Get an editable Word document from a PDF.",
+      compress: "Shrink files so they fit in an email or a form upload.",
+      watermark: "Stamp text like COPY or CONFIDENTIAL across pages.",
+      protect: "Add or remove a password with AES-256 encryption.",
+    },
+    stepsTitle: "Three steps, done.",
+    steps: [
+      { title: "Open a file", text: "Drop a PDF on this page or pick one from a folder. On a phone, open it straight from Files." },
+      { title: "Change what you need", text: "Click the part you want to change. Every edit can be undone and the original file stays untouched." },
+      { title: "Download the result", text: "Save it as a new PDF, ready to send." },
+    ],
+    privacyEyebrow: "File safety",
+    privacyTitle: "Your documents stay yours.",
+    privacyText: "Contracts, ID scans, payslips: we know they are often private. Here is what happens to your files:",
+    privacyPoints: [
+      { title: "Processed in your browser", text: "Every tool runs on your device. Files are never uploaded to a server." },
+      { title: "No copies on our side", text: "Because nothing is uploaded, there is nothing for us to store, read, or leak." },
+      { title: "Drafts stay in this browser", text: "Unfinished edits are kept only in this browser so you can pick up later. Discard them any time." },
+    ],
+    faqTitle: "Questions & answers",
+  },
   notFound: {
     title: "Page not found",
     message: "The page you are looking for does not exist.",
@@ -63,6 +126,18 @@ export const en = {
         {
           question: "Can I add a signature to a PDF?",
           answer: "Yes. Upload an image of your signature, place it on any page, and resize it before downloading.",
+        },
+        {
+          question: "Is PDFEditor free?",
+          answer: "Yes. Every tool is free to use.",
+        },
+        {
+          question: "Do I need to create an account?",
+          answer: "No. Open the page and start working, no sign-up needed.",
+        },
+        {
+          question: "Does it work on my phone?",
+          answer: "Yes. Open the site in Chrome or Safari on your phone and every tool is available.",
         },
       ],
     },

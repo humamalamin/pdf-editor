@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from "react";
 import {
-  Upload,
   Type,
   Save,
   ChevronLeft,
@@ -52,7 +51,7 @@ import { useUndoable } from "@/lib/useUndoable";
 import { snapBox, snapPoint, snapResize, type Box, type Guide } from "@/lib/snapping";
 import { cn } from "@/lib/utils";
 import { useFileDrop } from "@/lib/useFileDrop";
-import PrivacyNote from "@/components/PrivacyNote";
+import HomeLanding from "@/components/HomeLanding";
 import TextToolbar from "@/components/TextToolbar";
 import ShapeToolbar from "@/components/ShapeToolbar";
 import { LineShape, ShapeBody, snapToAngle, type LineChangeInfo } from "@/components/ShapeView";
@@ -81,8 +80,8 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 const DEFAULT_MAX_SCALE = 1.5;
-// Space reserved above the pages for the floating toolbar (matches pt-36) and side padding (px-4)
-const SCROLL_PADDING_TOP = 144;
+// Space above the first page inside the scroll area (matches pt-8)
+const SCROLL_PADDING_TOP = 32;
 const SCROLL_PADDING_X = 16;
 const DUPLICATE_OFFSET = 12;
 const CLIPBOARD_MIME = "application/x-pdfeditor-annotations";
@@ -216,6 +215,7 @@ function ToolbarButton({
   onClick,
   disabled,
   active,
+  compact,
   className,
   children,
 }: {
@@ -224,29 +224,57 @@ function ToolbarButton({
   onClick: () => void;
   disabled?: boolean;
   active?: boolean;
+  /** Below the sm breakpoint show only the icon, so the dock fits one row on phones */
+  compact?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       title={title ?? label}
+      aria-pressed={active}
       className={cn(
-        "group flex w-[4.5rem] flex-col items-center justify-center gap-2 rounded-xl p-2 transition-all disabled:pointer-events-none disabled:opacity-40",
-        active
-          ? "bg-blue-50 text-blue-600 ring-2 ring-blue-500/30 dark:bg-blue-900/30 dark:text-blue-300"
-          : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+        "flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-2 text-xs font-medium text-ink transition-colors disabled:pointer-events-none disabled:opacity-40",
+        compact ? "min-w-12 sm:min-w-16" : "min-w-16",
+        active ? "bg-marker" : "hover:bg-[#F0EFEA]",
         className
       )}
     >
       {children}
-      <span className="whitespace-nowrap text-[11px] font-semibold tracking-wide">{label}</span>
+      <span className={cn("whitespace-nowrap", compact && "sr-only sm:not-sr-only")}>{label}</span>
     </button>
   );
 }
 
-const ToolbarDivider = () => <div className="mx-1 h-10 w-px bg-slate-200 dark:bg-slate-700/50" />;
+/** Square icon button used in the editor's top bar (undo, redo, change file). */
+function HeaderIconButton({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-ink transition-colors hover:border-ink disabled:pointer-events-none disabled:opacity-40"
+    >
+      {children}
+    </button>
+  );
+}
+
 
 export default function PdfEditor() {
   const { t, locale } = useI18n();
@@ -270,6 +298,14 @@ export default function PdfEditor() {
   const [tool, setTool] = useState<Tool>(null);
   const isPlacingText = tool === "text";
   const activeShapeTool = SHAPE_TOOLS.find((t) => t.kind === tool);
+  // Hint shown above the tool dock, only while a tool is active
+  const activeHint = isPlacingText
+    ? te.addTextActive
+    : tool === "ink"
+      ? te.shapeTools.ink.hint
+      : activeShapeTool
+        ? format(te.shapeActiveHint, { hint: te.shapeTools[activeShapeTool.kind].hint })
+        : null;
   const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
   const shapeMenuRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -1274,22 +1310,19 @@ export default function PdfEditor() {
 
   if (!pdfFile) {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center overflow-auto p-4">
-        <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{te.title}</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
-            {te.subtitle}
-          </p>
-          <PrivacyNote />
-        </header>
-        {resumable && (
-          <div className="mb-6 flex w-full max-w-xl flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/60 dark:bg-blue-950/40">
-            <History className="h-8 w-8 shrink-0 text-blue-500" strokeWidth={1.5} />
+      <HomeLanding
+        onFile={handleFile}
+        dropProps={dropProps}
+        isDragging={isDragging}
+        resume={
+          resumable && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[10px] border border-line bg-marker/20 p-4">
+            <History className="h-8 w-8 shrink-0 text-ink" strokeWidth={1.5} />
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-slate-800 dark:text-white" title={resumable.state.fileName}>
+              <p className="truncate font-semibold text-ink" title={resumable.state.fileName}>
                 {resumable.state.fileName}
               </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-muted">
                 {plural(
                   resumable.state.annotations.length + Object.keys(resumable.state.formValues).length,
                   te.editsOne,
@@ -1302,40 +1335,22 @@ export default function PdfEditor() {
               <button
                 type="button"
                 onClick={discardSession}
-                className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="h-10 rounded-lg px-3 text-sm font-medium text-ink-soft hover:bg-surface"
               >
                 {te.discard}
               </button>
               <button
                 type="button"
                 onClick={() => resumeSession(resumable)}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                className="h-10 rounded-lg bg-ink px-4 text-sm font-semibold text-paper"
               >
                 {te.continueEditing}
               </button>
             </div>
           </div>
-        )}
-        <label
-          {...dropProps}
-          className={cn(
-            "flex h-64 w-full max-w-xl cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white transition-all hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-800/80",
-            isDragging && "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
-          )}
-        >
-          <Upload className="mb-4 h-12 w-12 text-slate-400" />
-          <p className="mb-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
-            {te.uploadPrompt}
-          </p>
-          <p className="text-xs text-slate-500">{te.maxSize}</p>
-          <input
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={(e) => handleFile(e.target.files?.[0])}
-          />
-        </label>
-      </div>
+          )
+        }
+      />
     );
   }
 
@@ -1735,122 +1750,60 @@ export default function PdfEditor() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 relative overflow-hidden">
-      {/* Floating Glassmorphism Toolbar */}
-      <div className="absolute top-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-2xl bg-white/80 px-4 py-3 shadow-2xl backdrop-blur-xl border border-white/40 dark:bg-slate-900/80 dark:border-slate-700/50">
-        <ToolbarButton label={te.upload} title={format(te.activeFile, { name: pdfFile.name })} onClick={handleClear}>
-          <Upload className="h-6 w-6" strokeWidth={1.5} />
-        </ToolbarButton>
-
-        <ToolbarDivider />
-
-        <ToolbarButton
-          label={te.addText}
-          title={isPlacingText ? te.addTextActive : te.addText}
-          active={isPlacingText}
-          onClick={() => setTool((t) => (t === "text" ? null : "text"))}
-        >
-          <Type className="h-6 w-6" strokeWidth={1.5} />
-        </ToolbarButton>
-
-        <ToolbarButton
-          label={te.shapeTools.ink.label}
-          title={te.shapeTools.ink.hint}
-          active={tool === "ink"}
-          onClick={() => {
-            setTool((t) => (t === "ink" ? null : "ink"));
-            selectOnly(null);
-          }}
-        >
-          <Pencil className="h-6 w-6" strokeWidth={1.5} />
-        </ToolbarButton>
-
-        <ToolbarButton
-          label={te.sign}
-          title={te.signHint}
-          onClick={() => setIsSignOpen(true)}
-          className="bg-blue-500 text-white shadow-md shadow-blue-500/20 hover:-translate-y-0.5 hover:bg-blue-600 hover:text-white dark:text-white dark:hover:bg-blue-600 dark:hover:text-white"
-        >
-          <PenTool className="h-6 w-6" strokeWidth={1.5} />
-        </ToolbarButton>
-
-        <div ref={shapeMenuRef} className="relative">
-          <ToolbarButton
-            label={activeShapeTool ? te.shapeTools[activeShapeTool.kind].label : te.shapes}
-            title={
-              activeShapeTool
-                ? format(te.shapeActiveHint, { hint: te.shapeTools[activeShapeTool.kind].hint })
-                : te.shapesHint
-            }
-            active={!!activeShapeTool || isShapeMenuOpen}
-            onClick={() => setIsShapeMenuOpen((open) => !open)}
-          >
-            {activeShapeTool ? (
-              <span className="flex h-6 w-6 items-center justify-center">{activeShapeTool.icon}</span>
-            ) : (
-              <Shapes className="h-6 w-6" strokeWidth={1.5} />
-            )}
-          </ToolbarButton>
-          {isShapeMenuOpen && (
-            <div
-              role="menu"
-              className="absolute left-1/2 top-full z-50 mt-3 w-60 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-            >
-              {SHAPE_TOOLS.map((s) => (
-                <button
-                  key={s.kind}
-                  role="menuitem"
-                  type="button"
-                  onClick={() => {
-                    setTool(s.kind);
-                    selectOnly(null);
-                    setIsShapeMenuOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
-                    tool === s.kind
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                      : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                  )}
+    <div className="flex h-full flex-col overflow-hidden bg-canvas text-ink">
+      {/* Top bar: file, history, download */}
+      <header className="flex min-h-[60px] flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-surface px-4 py-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <HeaderIconButton label={format(te.activeFile, { name: pdfFile.name })} onClick={handleClear}>
+            <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} />
+          </HeaderIconButton>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-[15px] font-semibold" title={pdfFile.name}>
+              {pdfFile.name}
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-xs text-muted">
+              {pageSizes.length > 0 && plural(pageSizes.length, t.common.pageCountOne, t.common.pageCountOther)}
+              {autosaveStatus !== "idle" && (
+                <span
+                  className="flex items-center gap-1"
+                  title={autosaveStatus === "error" ? te.autosaveBlocked : te.autosaveInfo}
                 >
-                  <span className="text-slate-500 dark:text-slate-400">{s.icon}</span>
-                  <span className="flex flex-col">
-                    <span className="font-medium">{te.shapeTools[s.kind].label}</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">{te.shapeTools[s.kind].hint}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+                  {pageSizes.length > 0 && <span aria-hidden="true">·</span>}
+                  {autosaveStatus === "saving" && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
+                  {autosaveStatus === "saved" && <CircleCheck className="h-3.5 w-3.5 text-emerald-600" />}
+                  {autosaveStatus === "error" && <TriangleAlert className="h-3.5 w-3.5 text-amber-600" />}
+                  {autosaveStatus === "saving" ? te.autosaveSaving : autosaveStatus === "saved" ? te.autosaveSaved : te.autosaveOff}
+                </span>
+              )}
+            </span>
+          </div>
         </div>
+        <div className="flex items-center gap-2">
+          <HeaderIconButton label={te.undoHint} onClick={undo} disabled={!canUndo}>
+            <Undo2 className="h-[18px] w-[18px]" strokeWidth={2} />
+          </HeaderIconButton>
+          <HeaderIconButton label={te.redoHint} onClick={redo} disabled={!canRedo}>
+            <Redo2 className="h-[18px] w-[18px]" strokeWidth={2} />
+          </HeaderIconButton>
+          <span aria-hidden="true" className="mx-1 h-6 w-px bg-line" />
+          <button
+            type="button"
+            onClick={downloadPdf}
+            disabled={isExporting || !hasChanges}
+            title={hasChanges ? te.saveHint : te.saveDisabledHint}
+            className="flex h-11 items-center gap-2 rounded-[10px] bg-ink px-5 text-[15px] font-semibold text-paper transition-opacity disabled:opacity-40"
+          >
+            {isExporting ? (
+              <LoaderCircle className="h-[18px] w-[18px] animate-spin" />
+            ) : (
+              <Save className="h-[18px] w-[18px]" strokeWidth={2} />
+            )}
+            {isExporting ? te.saving : te.save}
+          </button>
+        </div>
+      </header>
 
-        <ToolbarButton label={te.search} title={te.searchHint} active={isSearchOpen} onClick={() => (isSearchOpen ? closeSearch() : openSearch())}>
-          <Search className="h-6 w-6" strokeWidth={1.5} />
-        </ToolbarButton>
-
-        <ToolbarDivider />
-
-        <ToolbarButton label={te.undo} title={te.undoHint} onClick={undo} disabled={!canUndo}>
-          <Undo2 className="h-6 w-6" strokeWidth={1.5} />
-        </ToolbarButton>
-        <ToolbarButton label={te.redo} title={te.redoHint} onClick={redo} disabled={!canRedo}>
-          <Redo2 className="h-6 w-6" strokeWidth={1.5} />
-        </ToolbarButton>
-
-        <ToolbarDivider />
-
-        <ToolbarButton
-          label={isExporting ? te.saving : te.save}
-          title={hasChanges ? te.saveHint : te.saveDisabledHint}
-          onClick={downloadPdf}
-          disabled={isExporting || !hasChanges}
-          className="hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
-        >
-          <Save className="h-6 w-6" strokeWidth={1.5} />
-        </ToolbarButton>
-      </div>
-
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         {/* Mounted before the PDF finishes loading, so the initial fit-to-width already accounts for it */}
         {showThumbnails && (
           <PageThumbnails
@@ -1867,7 +1820,7 @@ export default function PdfEditor() {
         )}
 
         {/* Editor Area: every page stacked vertically */}
-        <div ref={scrollRef} data-scroll-root onScroll={updateCurrentPage} className="hide-scrollbar relative flex-1 overflow-auto pt-36 pb-20 px-4">
+        <div ref={scrollRef} data-scroll-root onScroll={updateCurrentPage} className="hide-scrollbar relative flex-1 overflow-auto pt-8 pb-32 px-4">
           <div className="flex min-h-full min-w-max flex-col items-center gap-6">
             {pdfDoc &&
               // renderAnnotation/renderLine only touch refs inside the event handlers they create,
@@ -1887,8 +1840,8 @@ export default function PdfEditor() {
                     onPointerMove={(e) => handlePagePointerMove(e, page)}
                     onPointerUp={handlePagePointerUp}
                     className={cn(
-                      "relative shrink-0 bg-white shadow-xl",
-                      tool && "cursor-crosshair ring-2 ring-blue-500/40",
+                      "relative shrink-0 bg-white shadow-[0_1px_2px_rgba(21,23,28,0.12),0_12px_32px_-12px_rgba(21,23,28,0.25)]",
+                      tool && "cursor-crosshair ring-2 ring-link/40",
                       tool && tool !== "text" && "touch-none select-none",
                       // With the pen, strokes can start on top of existing annotations instead of grabbing them
                       tool === "ink" && "[&_.pdf-annotation]:pointer-events-none [&_.pdf-annotation_*]:pointer-events-none",
@@ -1974,12 +1927,11 @@ export default function PdfEditor() {
               })}
           </div>
         </div>
-      </div>
 
       {isSearchOpen && (
         <div
           role="search"
-          className="absolute right-6 top-[7.25rem] z-50 flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 text-sm text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          className="absolute top-4 right-6 z-50 flex items-center gap-1 rounded-[10px] border border-line bg-surface p-1.5 text-sm text-ink shadow-lg"
         >
           <Search className="ml-1 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
           <input
@@ -2058,7 +2010,7 @@ export default function PdfEditor() {
       )}
 
       {selectedIds.length > 1 && (
-        <div className="absolute left-1/2 top-[7.25rem] z-50 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-sm text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+        <div className="absolute top-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-[10px] border border-line bg-surface p-1 text-sm text-ink shadow-lg">
           <span className="px-2 font-medium">{format(te.selected, { count: selectedIds.length })}</span>
           <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-700" />
           <button
@@ -2102,7 +2054,7 @@ export default function PdfEditor() {
       {formFields.length > 0 && (
         <div
           style={{ left: (showThumbnails ? THUMBNAIL_SIDEBAR_WIDTH : 0) + 24 }}
-          className="absolute bottom-6 z-50 flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/90 px-3 py-2 text-sm text-slate-700 shadow-lg backdrop-blur-md dark:border-slate-700/60 dark:bg-slate-800/90 dark:text-slate-200">
+          className="absolute top-4 z-50 flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/90 px-3 py-2 text-sm text-slate-700 shadow-lg backdrop-blur-md dark:border-slate-700/60 dark:bg-slate-800/90 dark:text-slate-200">
           <span>
             <span className="font-semibold">{new Set(formFields.map((f) => f.name)).size}</span> {te.fillableFields}
             {changedFieldNames.length > 0 && (
@@ -2124,35 +2076,115 @@ export default function PdfEditor() {
         </div>
       )}
 
-      {/* Floating zoom + pagination, bottom right */}
-      <div className="absolute bottom-6 right-6 z-50 flex items-center gap-1 rounded-xl bg-white/90 p-1.5 shadow-lg backdrop-blur-md border border-slate-200/60 text-slate-600 dark:bg-slate-800/90 dark:border-slate-700/60 dark:text-slate-300">
-        {autosaveStatus !== "idle" && (
-          <>
-            <span
-              className="flex items-center gap-1.5 px-1.5 text-xs text-slate-500 dark:text-slate-400"
-              title={
-                autosaveStatus === "error"
-                  ? te.autosaveBlocked
-                  : te.autosaveInfo
-              }
-            >
-              {autosaveStatus === "saving" && <LoaderCircle className="h-4 w-4 animate-spin" />}
-              {autosaveStatus === "saved" && <CircleCheck className="h-4 w-4 text-emerald-500" />}
-              {autosaveStatus === "error" && <TriangleAlert className="h-4 w-4 text-amber-500" />}
-              <span className="hidden sm:inline">
-                {autosaveStatus === "saving" ? te.autosaveSaving : autosaveStatus === "saved" ? te.autosaveSaved : te.autosaveOff}
-              </span>
-            </span>
-            <div className="mx-1 h-6 w-px bg-slate-200 dark:bg-slate-700" />
-          </>
+      {/* Tool dock, floating at the bottom centre of the canvas */}
+      <div
+        role="toolbar"
+        aria-label={te.title}
+        className="absolute bottom-6 z-50 -translate-x-1/2"
+        style={{ left: `calc(50% + ${showThumbnails ? THUMBNAIL_SIDEBAR_WIDTH / 2 : 0}px)` }}
+      >
+        {activeHint && (
+          <p
+            aria-live="polite"
+            className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-max max-w-[min(28rem,80vw)] -translate-x-1/2 rounded-full bg-ink px-3 py-1.5 text-center text-xs text-paper shadow-md"
+          >
+            {activeHint}
+          </p>
         )}
+        <div className="flex items-center gap-0.5 rounded-2xl border border-line bg-surface p-1.5 shadow-[0_12px_32px_-12px_rgba(21,23,28,0.35)]">
+          <ToolbarButton
+            compact
+            label={te.addText}
+            title={isPlacingText ? te.addTextActive : te.addText}
+            active={isPlacingText}
+            onClick={() => setTool((t) => (t === "text" ? null : "text"))}
+          >
+            <Type className="h-5 w-5" strokeWidth={1.8} />
+          </ToolbarButton>
+
+          <ToolbarButton compact label={te.sign} title={te.signHint} onClick={() => setIsSignOpen(true)}>
+            <PenTool className="h-5 w-5" strokeWidth={1.8} />
+          </ToolbarButton>
+
+          <ToolbarButton
+            compact
+            label={te.shapeTools.ink.label}
+            title={te.shapeTools.ink.hint}
+            active={tool === "ink"}
+            onClick={() => {
+              setTool((t) => (t === "ink" ? null : "ink"));
+              selectOnly(null);
+            }}
+          >
+            <Pencil className="h-5 w-5" strokeWidth={1.8} />
+          </ToolbarButton>
+
+          <div ref={shapeMenuRef} className="relative">
+            <ToolbarButton
+            compact
+              label={activeShapeTool ? te.shapeTools[activeShapeTool.kind].label : te.shapes}
+              title={
+                activeShapeTool
+                  ? format(te.shapeActiveHint, { hint: te.shapeTools[activeShapeTool.kind].hint })
+                  : te.shapesHint
+              }
+              active={!!activeShapeTool || isShapeMenuOpen}
+              onClick={() => setIsShapeMenuOpen((open) => !open)}
+            >
+              {activeShapeTool ? (
+                <span className="flex h-5 w-5 items-center justify-center">{activeShapeTool.icon}</span>
+              ) : (
+                <Shapes className="h-5 w-5" strokeWidth={1.8} />
+              )}
+            </ToolbarButton>
+            {isShapeMenuOpen && (
+              <div
+                role="menu"
+                className="absolute bottom-full left-1/2 z-50 mb-3 w-60 -translate-x-1/2 rounded-xl border border-line bg-surface p-1.5 shadow-2xl"
+              >
+                {SHAPE_TOOLS.map((s) => (
+                  <button
+                    key={s.kind}
+                    role="menuitem"
+                    type="button"
+                    onClick={() => {
+                      setTool(s.kind);
+                      selectOnly(null);
+                      setIsShapeMenuOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                      tool === s.kind
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                        : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    )}
+                  >
+                    <span className="text-slate-500 dark:text-slate-400">{s.icon}</span>
+                    <span className="flex flex-col">
+                      <span className="font-medium">{te.shapeTools[s.kind].label}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{te.shapeTools[s.kind].hint}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <ToolbarButton compact label={te.search} title={te.searchHint} active={isSearchOpen} onClick={() => (isSearchOpen ? closeSearch() : openSearch())}>
+            <Search className="h-5 w-5" strokeWidth={1.8} />
+          </ToolbarButton>
+        </div>
+      </div>
+
+      {/* Floating zoom + pagination, bottom right */}
+      <div className="absolute right-6 bottom-24 z-50 flex items-center xl:bottom-6 gap-1 rounded-full border border-line bg-surface p-1 text-ink shadow-[0_8px_24px_-12px_rgba(21,23,28,0.3)]">
         <button
           onClick={toggleThumbnails}
           title={showThumbnails ? te.hideThumbnails : te.showThumbnails}
           aria-label={showThumbnails ? te.hideThumbnails : te.showThumbnails}
           aria-pressed={showThumbnails}
           className={cn(
-            "rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700",
+            "rounded-full p-2 hover:bg-slate-100",
             showThumbnails && "text-blue-600 dark:text-blue-400"
           )}
         >
@@ -2166,14 +2198,14 @@ export default function PdfEditor() {
           disabled={scale <= MIN_ZOOM}
           title={te.zoomOut}
           aria-label={te.zoomOut}
-          className="rounded-lg p-1.5 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
+          className="rounded-full p-2 hover:bg-slate-100 disabled:opacity-40"
         >
           <ZoomOut className="h-5 w-5" />
         </button>
         <button
           onClick={zoomToFit}
           title={te.zoomFit}
-          className="min-w-[3.5rem] rounded-lg px-1.5 py-1 text-center text-sm font-medium tabular-nums hover:bg-slate-100 dark:hover:bg-slate-700"
+          className="min-w-[3.5rem] rounded-full px-1.5 py-1.5 text-center font-mono text-[13px] tabular-nums hover:bg-slate-100"
         >
           {Math.round(scale * 100)}%
         </button>
@@ -2182,7 +2214,7 @@ export default function PdfEditor() {
           disabled={scale >= MAX_ZOOM}
           title={te.zoomIn}
           aria-label={te.zoomIn}
-          className="rounded-lg p-1.5 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
+          className="rounded-full p-2 hover:bg-slate-100 disabled:opacity-40"
         >
           <ZoomIn className="h-5 w-5" />
         </button>
@@ -2194,7 +2226,7 @@ export default function PdfEditor() {
           disabled={currentPage <= 1}
           title={te.prevPage}
           aria-label={te.prevPage}
-          className="rounded-lg p-1.5 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
+          className="rounded-full p-2 hover:bg-slate-100 disabled:opacity-40"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -2206,10 +2238,11 @@ export default function PdfEditor() {
           disabled={currentPage >= pageSizes.length}
           title={te.nextPage}
           aria-label={te.nextPage}
-          className="rounded-lg p-1.5 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
+          className="rounded-full p-2 hover:bg-slate-100 disabled:opacity-40"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
+      </div>
       </div>
     </div>
   );

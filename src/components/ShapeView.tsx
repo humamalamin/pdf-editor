@@ -208,7 +208,7 @@ export function LineShape({
     >
       <svg width={width} height={height} className="block overflow-visible">
         {isSelected && (
-          <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#3b82f6" strokeWidth={style.strokeWidth * scale + 6} strokeOpacity={0.25} strokeLinecap="round" />
+          <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#2346c8" strokeWidth={style.strokeWidth * scale + 6} strokeOpacity={0.25} strokeLinecap="round" />
         )}
         <line
           x1={p1.x}

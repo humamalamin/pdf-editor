@@ -16,6 +16,17 @@ export const toolIds = [
 
 export type ToolId = (typeof toolIds)[number];
 
+export const toolCategoryIds = ["edit", "pages", "convert", "secure"] as const;
+export type ToolCategory = (typeof toolCategoryIds)[number];
+
+/** Home page grouping: what the visitor wants to do with the file. */
+export const toolCategories: Record<ToolCategory, readonly ToolId[]> = {
+  edit: ["edit", "page-numbers"],
+  pages: ["merge", "split", "organize"],
+  convert: ["pdf-to-image", "image-to-pdf", "pdf-to-word"],
+  secure: ["compress", "watermark", "protect"],
+};
+
 /** Page path of each tool per language. English keeps the original URLs. */
 const toolPaths: Record<ToolId, Record<Locale, string>> = {
   edit: { en: "/", id: "/id" },

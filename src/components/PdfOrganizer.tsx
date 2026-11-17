@@ -170,11 +170,11 @@ export default function PdfOrganizer() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-[#f0f4f8] dark:bg-slate-950 p-6 overflow-auto">
+    <div className="flex h-full flex-col bg-paper dark:bg-slate-950 p-6 overflow-auto">
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{tt.title}</h1>
+            <h1 className="text-3xl font-bold leading-[1.1] tracking-[-0.03em] text-ink sm:text-[40px]">{tt.title}</h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{tt.subtitle}</p>
             <PrivacyNote />
           </div>

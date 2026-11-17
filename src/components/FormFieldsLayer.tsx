@@ -38,7 +38,7 @@ export default function FormFieldsLayer({
           border: f.borderWidth ? `${f.borderWidth * scale}px solid ${f.borderColor}` : undefined,
           backgroundColor: f.backgroundColor ?? undefined,
           // Highlight tint layered over the field's own background
-          backgroundImage: highlight && !f.readOnly ? "linear-gradient(rgb(59 130 246 / 0.12), rgb(59 130 246 / 0.12))" : undefined,
+          backgroundImage: highlight && !f.readOnly ? "linear-gradient(rgb(35 70 200 / 0.1), rgb(35 70 200 / 0.1))" : undefined,
         };
         const surface = cn(
           "pdf-annotation absolute outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500",

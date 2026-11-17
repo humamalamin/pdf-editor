@@ -133,14 +133,14 @@ export default function ImageToPdf() {
     <div
       {...dropProps}
       className={cn(
-        "flex h-full flex-col overflow-auto bg-[#f0f4f8] p-6 transition-shadow dark:bg-slate-950",
+        "flex h-full flex-col overflow-auto bg-paper p-6 transition-shadow dark:bg-slate-950",
         isDragging && items.length > 0 && "ring-4 ring-inset ring-blue-400",
       )}
     >
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{tt.title}</h1>
+            <h1 className="text-3xl font-bold leading-[1.1] tracking-[-0.03em] text-ink sm:text-[40px]">{tt.title}</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {tt.subtitle}
             </p>

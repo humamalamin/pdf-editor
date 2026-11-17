@@ -19,9 +19,9 @@ export default function ToolInfoDialog({
         onClick={() => dialogRef.current?.showModal()}
         aria-label={label}
         title={label}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        className="flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-surface text-ink transition-colors hover:border-ink"
       >
-        <Info className="h-4 w-4" aria-hidden="true" />
+        <Info className="h-[18px] w-[18px]" aria-hidden="true" />
       </button>
       <dialog
         ref={dialogRef}
