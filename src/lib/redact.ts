@@ -70,7 +70,7 @@ export async function applyRedactions(doc: PDFDocument, redactions: Annotation[]
       page.cleanup();
     }
   } finally {
-    await pdf.destroy();
+    await pdf.loadingTask.destroy();
   }
 
   // Tagged-PDF structure can carry copies of the text (alt text, ActualText) and points at the

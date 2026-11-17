@@ -72,7 +72,7 @@ export default function PdfToImage() {
     };
   }, [pdf]);
 
-  useEffect(() => () => void pdf?.destroy(), [pdf]);
+  useEffect(() => () => void pdf?.loadingTask.destroy(), [pdf]);
 
   const handleFile = async (selectedFile: File | undefined) => {
     if (!selectedFile || selectedFile.type !== "application/pdf") return;

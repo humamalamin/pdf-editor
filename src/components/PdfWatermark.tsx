@@ -101,7 +101,7 @@ export default function PdfWatermark() {
 
       baseRef.current = canvas;
       setPageInfo({ width: base.width, height: base.height, count: pdf.numPages });
-      await pdf.destroy();
+      await pdf.loadingTask.destroy();
       setBuffer(pdfBuffer);
       setFile(selected);
       setIsImage(image);

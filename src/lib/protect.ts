@@ -42,7 +42,7 @@ type CreateQpdf = (options: {
 export async function getPdfStatus(buffer: ArrayBuffer): Promise<PdfStatus> {
   try {
     const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
-    await pdf.destroy();
+    await pdf.loadingTask.destroy();
     return "open";
   } catch (err) {
     return err instanceof Error && err.name === "PasswordException" ? "password" : "invalid";

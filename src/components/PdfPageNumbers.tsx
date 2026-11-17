@@ -90,7 +90,7 @@ export default function PdfPageNumbers() {
   // Preview the first page that actually gets a number.
   const previewPage = labels.size > 0 ? Math.min(...labels.keys()) : 1;
 
-  useEffect(() => () => void pdf?.destroy(), [pdf]);
+  useEffect(() => () => void pdf?.loadingTask.destroy(), [pdf]);
 
   // Render the preview page once per page change; settings only redraw the overlay.
   useEffect(() => {

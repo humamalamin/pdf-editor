@@ -87,7 +87,7 @@ export async function renderPages(
       pages.push({ canvas, width: base.width, height: base.height });
     }
   } finally {
-    await pdf.destroy();
+    await pdf.loadingTask.destroy();
   }
 
   return pages;
@@ -218,6 +218,6 @@ export async function getPageCount(buffer: ArrayBuffer) {
   try {
     return pdf.numPages;
   } finally {
-    await pdf.destroy();
+    await pdf.loadingTask.destroy();
   }
 }

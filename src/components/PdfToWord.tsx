@@ -23,7 +23,7 @@ export default function PdfToWord() {
 
   const totalPages = pdf?.numPages ?? 0;
 
-  useEffect(() => () => void pdf?.destroy(), [pdf]);
+  useEffect(() => () => void pdf?.loadingTask.destroy(), [pdf]);
 
   const handleFile = async (selectedFile: File | undefined) => {
     if (!selectedFile || selectedFile.type !== "application/pdf") return;
